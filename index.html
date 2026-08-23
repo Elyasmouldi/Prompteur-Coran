@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#000000" />
+<title>Prompteur vocal de récitation</title>
+<style>
+  :root { --emerald:#34d399; --amber:#fbbf24; --sky:#38bdf8; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; height:100%; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { background:#0c0a09; color:#f5f5f4; }
+  button { font: inherit; cursor: pointer; border:none; }
+  .hidden { display:none !important; }
+
+  #editor { min-height:100vh; padding:20px; }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  .tag { color: var(--emerald); font-weight:600; margin:0; }
+  h1 { font-size: clamp(28px,5vw,48px); margin:4px 0 6px; }
+  .muted { color:#a8a29e; margin:0 0 16px; font-size:15px; }
+  textarea {
+    width:100%; min-height:44vh; resize:vertical; border-radius:18px;
+    background:#0c0a09; border:1px solid #44403c; color:#f5f5f4;
+    padding:18px; font-size:22px; line-height:1.9; outline:none;
+  }
+  textarea:focus { border-color: var(--emerald); }
+  .card { background:#1c1917; border:1px solid #292524; border-radius:20px; padding:18px; box-shadow:0 20px 40px rgba(0,0,0,.4); }
+  .row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; }
+  .row .left { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  label.ck { display:flex; align-items:center; gap:8px; font-size:14px; color:#d6d3d1; cursor:pointer; }
+  .library { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .library label { font-size:14px; color:#d6d3d1; }
+  select {
+    background:#0c0a09; color:#f5f5f4; border:1px solid #44403c; border-radius:12px;
+    padding:10px 14px; font-size:15px; outline:none; min-width:240px; cursor:pointer;
+  }
+  select:focus { border-color: var(--emerald); }
+  .lib-hint { font-size:12px; color:#78716c; }
+  .btn-primary { background:var(--emerald); color:#0c0a09; padding:12px 26px; border-radius:16px; font-weight:600; font-size:16px; }
+  .btn-primary:hover { background:#6ee7b7; }
+  .hint { color:#78716c; font-size:12px; margin-top:12px; }
+
+  #player { display:none; flex-direction:column; height:100vh; background:#000; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,.1); }
+  .screen-num { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--emerald); }
+  #status { font-size:13px; color:rgba(255,255,255,.6); max-width:60vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .icons { display:flex; align-items:center; gap:6px; }
+  .icon { width:42px; height:42px; border-radius:50%; background:transparent; color:#fff; font-size:16px; display:grid; place-items:center; }
+  .icon:hover { background:rgba(255,255,255,.1); }
+
+  main { flex:1; display:grid; place-items:center; padding:24px; position:relative; overflow:hidden; }
+  #passage { max-width:1100px; text-align:center; font-family: Georgia, "Times New Roman", serif; line-height:1.95; transition:opacity .25s; }
+  #passage.ar { font-family: "Traditional Arabic", "Amiri", "Scheherazade New", Georgia, serif; }
+  #passage .w { transition: color .18s, background .18s; padding:0 .04em; border-radius:6px; }
+  #passage .w.read { color: var(--emerald); }
+  #passage .w.current { color:#0c0a09; background: var(--emerald); }
+  #passage .line { margin:.35em 0; }
+
+  .overlay { position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.62); backdrop-filter:blur(4px); text-align:center; }
+  .overlay p { color:var(--amber); font-size:18px; margin:12px 0; }
+
+  footer { padding:14px 16px; border-top:1px solid rgba(255,255,255,.1); background:rgba(12,10,9,.9); }
+  .foot { max-width:1000px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
+  .bars { display:flex; align-items:center; gap:12px; }
+  .bar { flex:1; height:6px; border-radius:6px; background:rgba(255,255,255,.1); overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0; background:var(--emerald); transition:width .3s; }
+  .bar.small { width:96px; flex:none; }
+  .bar.small > i { background:var(--sky); }
+  #heard { text-align:center; font-size:13px; color:rgba(255,255,255,.45); direction:rtl; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .controls { display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; }
+  .nav { width:48px; height:48px; border-radius:50%; border:1px solid rgba(255,255,255,.2); background:transparent; color:#fff; font-size:20px; }
+  .nav:disabled { opacity:.35; }
+  .big { height:56px; padding:0 22px; border-radius:28px; font-size:16px; font-weight:600; display:inline-flex; align-items:center; gap:8px; }
+  .listen { background:var(--emerald); color:#000; }
+  .stop { background:#ef4444; color:#fff; }
+  .pause { height:56px; padding:0 20px; border-radius:28px; border:1px solid rgba(251,191,36,.5); background:rgba(251,191,36,.12); color:#fde68a; font-weight:600; }
+  .pause:disabled { opacity:.35; }
+  .settings { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:18px; font-size:12px; color:rgba(255,255,255,.5); }
+  .settings input[type=range] { accent-color:var(--emerald); }
+  .settings label { display:flex; align-items:center; gap:8px; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<div id="editor">
+  <div class="wrap">
+    <p class="tag">Prompteur vocal</p>
+    <h1>Préparer la récitation</h1>
+    <p class="muted">Chaque retour à la ligne crée un nouvel écran. Le texte est sauvegardé automatiquement dans ce navigateur.</p>
+    <div class="card">
+      <div class="library">
+        <label for="surah">📖 Bibliothèque de sourates :</label>
+        <select id="surah"><option value="">— Choisir une sourate —</option></select>
+        <span class="lib-hint">Charge le texte ci-dessous (un verset = un écran).</span>
+      </div>
+      <div class="library">
+        <label for="surahNum">🔢 Charger n'importe quelle sourate (1–114) :</label>
+        <input type="number" id="surahNum" min="1" max="114" placeholder="ex. 55" style="width:90px;background:#0c0a09;color:#f5f5f4;border:1px solid #44403c;border-radius:12px;padding:10px 12px;font-size:15px;outline:none;" />
+        <button id="loadNum" style="background:#292524;color:#f5f5f4;border:1px solid #44403c;border-radius:12px;padding:10px 16px;font-size:14px;">Charger</button>
+        <span id="numStatus" class="lib-hint"></span>
+      </div>
+      <textarea id="text" aria-label="Texte à réciter"></textarea>
+      <div class="row">
+        <div class="left">
+          <span id="count" class="muted" style="margin:0;"></span>
+          <label class="ck"><input type="checkbox" id="autoEdit" checked /> Avance vocale automatique</label>
+          <label class="ck">Versets/écran
+            <input type="number" id="lpsInput" min="1" max="8" value="4" style="width:60px;background:#0c0a09;color:#f5f5f4;border:1px solid #44403c;border-radius:10px;padding:6px 8px;font-size:14px;outline:none;" />
+          </label>
+        </div>
+        <button class="btn-primary" id="start">▶ Lancer le prompteur</button>
+      </div>
+    </div>
+    <p class="hint">Astuce : ouvrez l'app en https:// (GitHub Pages) et autorisez le micro. En prière, l'écran reste allumé.</p>
+  </div>
+</div>
+
+<div id="player">
+  <header>
+    <div style="min-width:0;">
+      <div class="screen-num"><span id="scr">Écran 1 / 1</span></div>
+      <div id="status">Prêt</div>
+    </div>
+    <div class="icons">
+      <button class="icon" id="fdown" title="Réduire">A−</button>
+      <button class="icon" id="fup" title="Agrandir">A+</button>
+      <button class="icon" id="fs" title="Plein écran">⛶</button>
+      <button class="icon" id="diagBtn" title="Diagnostic micro">🔎</button>
+      <button class="icon" id="edit" title="Éditer">⚙</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="passage"></div>
+    <div id="overlay" class="overlay hidden">
+      <div>
+        <div style="font-size:34px;">🌙</div>
+        <p>En attente — reprise à l'écran <span id="ovScr">1</span></p>
+        <button class="big listen" id="resume">▶ Reprendre</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="foot">
+      <div class="bars">
+        <div class="bar"><i id="prog"></i></div>
+        <div class="bar small" title="Progression dans le passage"><i id="progSmall"></i></div>
+      </div>
+      <div id="heard"></div>
+      <div id="debug" style="display:none;text-align:center;font-size:12px;color:#38bdf8;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;padding:6px 10px;margin:0 auto;max-width:660px;font-family:monospace;"></div>
+      <div class="controls">
+        <button class="nav" id="prev" title="Précédent">‹</button>
+        <button class="big listen" id="listen">🎙 Écouter</button>
+        <button class="pause" id="pauseBtn">⏸ Pause prière</button>
+        <button class="nav" id="next" title="Suivant">›</button>
+        <button class="nav" id="reset" title="Recommencer">↺</button>
+      </div>
+      <div class="settings">
+        <label><input type="checkbox" id="autoPlay" checked /> Avance automatique</label>
+        <label>Sensibilité
+          <input type="range" id="thr" min="0.4" max="0.9" step="0.02" value="0.6" />
+          <span id="thrVal">60 %</span>
+        </label>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var SURAHS = [
+    { n: 1, name: "الفاتحة — Al-Fâtiha", text:
+      "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\nالْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ\nالرَّحْمَٰنِ الرَّحِيمِ\nمَالِكِ يَوْمِ الدِّينِ\nإِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ\nاهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ\nصِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ" },
+    { n: 112, name: "الإخلاص — Al-Ikhlâs", text:
+      "قُلْ هُوَ اللَّهُ أَحَدٌ\nاللَّهُ الصَّمَدُ\nلَمْ يَلِدْ وَلَمْ يُولَدْ\nوَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ" },
+    { n: 113, name: "الفلق — Al-Falaq", text:
+      "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ\nمِن شَرِّ مَا خَلَقَ\nوَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ\nوَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ\nوَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ" },
+    { n: 114, name: "الناس — An-Nâs", text:
+      "قُلْ أَعُوذُ بِرَبِّ النَّاسِ\nمَلِكِ النَّاسِ\nإِلَٰهِ النَّاسِ\nمِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ\nالَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ\nمِنَ الْجِنَّةِ وَالنَّاسِ" },
+    { n: 108, name: "الكوثر — Al-Kawthar", text:
+      "إِنَّا أَعْطَيْنَاكَ الْكَوْثَرَ\nفَصَلِّ لِرَبِّكَ وَانْحَرْ\nإِنَّ شَانِئَكَ هُوَ الْأَبْتَرُ" },
+    { n: 103, name: "العصر — Al-'Asr", text:
+      "وَالْعَصْرِ\nإِنَّ الْإِنسَانَ لَفِي خُسْرٍ\nإِلَّا الَّذِينَ آمَنُوا وَعَمِلُوا الصَّالِحَاتِ وَتَوَاصَوْا بِالْحَقِّ وَتَوَاصَوْا بِالصَّبْرِ" },
+    { n: 18, name: "الكهف — Al-Kahf (110 versets)", fetch: true },
+    { n: 36, name: "يس — Yâ-Sîn (83 versets)", fetch: true },
+    { n: 67, name: "الملك — Al-Mulk (30 versets)", fetch: true }
+  ];
+
+  function loadSurahRemote(n, onDone, onError) {
+    var cacheKey = "vp_surah_" + n;
+    try { var c = localStorage.getItem(cacheKey); if (c) { onDone(c); return; } } catch (e) {}
+    fetch("https://api.alquran.cloud/v1/surah/" + n + "/quran-uthmani")
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (j) {
+        if (!j || !j.data || !j.data.ayahs) throw new Error("Format");
+        var txt = j.data.ayahs.map(function (a) { return a.text.trim(); }).join("\n");
+        try { localStorage.setItem(cacheKey, txt); } catch (e) {}
+        onDone(txt);
+      })
+      .catch(function (err) { onError(err); });
+  }
+
+  // ---- normalisation & comparaison floue ----
+  function normalize(s) {
+    return (s || "")
+      .toLowerCase().normalize("NFD")
+      .replace(/[\u0300-\u036f\u064B-\u065F\u0670]/g, "")
+      .replace(/\u0640/g, "")
+      .replace(/[إأآٱا]/g, "ا")
+      .replace(/ؤ/g, "و").replace(/[ئى]/g, "ي").replace(/ء/g, "")
+      .replace(/ة/g, "ه")
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .replace(/\s+/g, " ").trim();
+  }
+  function wordsOf(s) { return normalize(s).split(" ").filter(Boolean); }
+  function lev(a, b) {
+    if (a === b) return 0;
+    var la = a.length, lb = b.length; if (!la) return lb; if (!lb) return la;
+    var prev = [], i, j; for (j = 0; j <= lb; j++) prev[j] = j;
+    for (i = 1; i <= la; i++) { var cur = [i];
+      for (j = 1; j <= lb; j++) { var c = a.charCodeAt(i-1) === b.charCodeAt(j-1) ? 0 : 1;
+        cur[j] = Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+c); } prev = cur; }
+    return prev[lb];
+  }
+  function wordEq(a, b) {
+    if (!a || !b) return false;
+    if (a === b) return true;
+    var minLen = Math.min(a.length, b.length);
+    // préfixe commun seulement pour mots assez longs (évite faux positifs sur mots courts)
+    if (minLen >= 4 && (a.indexOf(b) === 0 || b.indexOf(a) === 0)) return true;
+    var maxLen = Math.max(a.length, b.length);
+    var tol = maxLen >= 7 ? 2 : (maxLen >= 4 ? 1 : 0);
+    return lev(a, b) <= tol;
+  }
+  function similarity(a, b) {
+    var aa = wordsOf(a), bb = wordsOf(b);
+    if (!aa.length || !bb.length) return 0;
+    var common = 0;
+    for (var i = 0; i < aa.length; i++)
+      for (var j = 0; j < bb.length; j++)
+        if (wordEq(aa[i], bb[j])) { common++; break; }
+    return common / Math.min(aa.length, bb.length);
+  }
+  function isArabic(s) { return /[\u0600-\u06FF]/.test(s || ""); }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var editor = $("editor"), player = $("player");
+  var textEl = $("text"), countEl = $("count");
+  var passage = $("passage"), scrEl = $("scr"), statusEl = $("status");
+  var progEl = $("prog"), progSmall = $("progSmall"), heardEl = $("heard");
+  var overlay = $("overlay"), ovScr = $("ovScr");
+  var listenBtn = $("listen"), pauseBtn = $("pauseBtn");
+  var thr = $("thr"), thrVal = $("thrVal");
+  var autoPlay = $("autoPlay"), autoEdit = $("autoEdit");
+  var surahSel = $("surah"), debugEl = $("debug");
+
+  var index = 0, listening = false, paused = false, fontSize = 52;
+  var threshold = 0.6, auto = true;
+  var recognizer = null, restartWanted = false, wakeLock = null;
+  var srRunning = false, micGranted = false;
+
+  // remplir la bibliothèque
+  SURAHS.forEach(function (s) {
+    var o = document.createElement("option");
+    o.value = String(s.n); o.textContent = s.n + ". " + s.name;
+    surahSel.appendChild(o);
+  });
+  surahSel.addEventListener("change", function () {
+    var s = SURAHS.filter(function (x) { return String(x.n) === surahSel.value; })[0];
+    if (!s) return;
+    function apply(txt) { textEl.value = txt; try { localStorage.setItem("vp_text", txt); } catch (e) {} refreshCount(); textEl.scrollTop = 0; surahSel.disabled = false; }
+    if (s.fetch) {
+      surahSel.disabled = true; textEl.value = "⏳ Chargement…";
+      loadSurahRemote(s.n, apply, function () { surahSel.disabled = false; textEl.value = "⚠️ Échec du chargement (connexion requise au 1er chargement)."; });
+    } else { apply(s.text); }
+  });
+
+  var surahNum = $("surahNum"), loadNum = $("loadNum"), numStatus = $("numStatus");
+  function loadByNumber() {
+    var n = parseInt(surahNum.value, 10);
+    if (!(n >= 1 && n <= 114)) { numStatus.textContent = "⚠️ Numéro entre 1 et 114."; return; }
+    numStatus.textContent = "⏳ Chargement de la sourate " + n + "…"; loadNum.disabled = true;
+    loadSurahRemote(n, function (txt) {
+      textEl.value = txt; try { localStorage.setItem("vp_text", txt); } catch (e) {}
+      refreshCount(); textEl.scrollTop = 0;
+      numStatus.textContent = "✅ Sourate " + n + " chargée (cache hors ligne)."; loadNum.disabled = false; surahSel.value = "";
+    }, function () { numStatus.textContent = "⚠️ Échec — connexion requise au 1er chargement."; loadNum.disabled = false; });
+  }
+  loadNum.addEventListener("click", loadByNumber);
+  surahNum.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); loadByNumber(); } });
+
+  var lpsInput = $("lpsInput");
+
+  try { textEl.value = localStorage.getItem("vp_text") || SURAHS[0].text; } catch (e) { textEl.value = SURAHS[0].text; }
+  var LINES_PER_SCREEN = 4; // regroupe 4 versets/lignes par écran
+  try { var lps = parseInt(localStorage.getItem("vp_lps"), 10); if (lps >= 1 && lps <= 8) LINES_PER_SCREEN = lps; } catch (e) {}
+  function pages() {
+    var lines = textEl.value.split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    if (!lines.length) return ["Collez un texte pour commencer."];
+    var out = [];
+    for (var i = 0; i < lines.length; i += LINES_PER_SCREEN) {
+      out.push(lines.slice(i, i + LINES_PER_SCREEN).join("\n"));
+    }
+    return out;
+  }
+  function refreshCount() { var n = pages().length; countEl.textContent = n + " écran" + (n > 1 ? "s" : "") + " · " + LINES_PER_SCREEN + " versets/écran"; }
+  textEl.addEventListener("input", function () { try { localStorage.setItem("vp_text", textEl.value); } catch (e) {} refreshCount(); });
+  refreshCount();
+
+  function requestWakeLock() { try { if ("wakeLock" in navigator) navigator.wakeLock.request("screen").then(function (w) { wakeLock = w; }); } catch (e) {} }
+  function releaseWakeLock() { try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {} }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && restartWanted) requestWakeLock(); });
+
+  // ---- rendu + surbrillance ----
+  var curNorm = [], matchPtr = 0;
+  function render() {
+    var p = pages();
+    if (index > p.length - 1) index = p.length - 1;
+    if (index < 0) index = 0;
+    var txt = p[index], ar = isArabic(txt);
+    curNorm = []; var wi = 0, html = "";
+    var lines = txt.split(/\n/);
+    for (var L = 0; L < lines.length; L++) {
+      var display = lines[L].split(/(\s+)/);
+      html += '<div class="line">';
+      for (var i = 0; i < display.length; i++) {
+        var tok = display[i];
+        if (/^\s+$/.test(tok)) { html += " "; continue; }
+        var norm = normalize(tok);
+        if (norm) { curNorm.push(norm); html += '<span class="w" data-i="' + wi + '">' + tok + '</span>'; wi++; }
+        else if (tok) { html += tok; }
+      }
+      html += '</div>';
+    }
+    passage.innerHTML = html;
+    passage.className = ar ? "ar" : "";
+    passage.setAttribute("dir", ar ? "rtl" : "ltr");
+    passage.style.fontSize = "clamp(30px, " + (fontSize / 13) + "vw, " + fontSize + "px)";
+    scrEl.textContent = "Écran " + (index + 1) + " / " + p.length;
+    progEl.style.width = (((index + 1) / p.length) * 100) + "%";
+    $("prev").disabled = index === 0;
+    $("next").disabled = index === p.length - 1;
+    ovScr.textContent = index + 1;
+    matchPtr = 0; paintWords();
+  }
+  function paintWords() {
+    var spans = passage.querySelectorAll(".w");
+    for (var i = 0; i < spans.length; i++)
+      spans[i].className = "w" + (i < matchPtr ? " read" : (i === matchPtr && srRunning ? " current" : ""));
+    setProgress(curNorm.length ? matchPtr / curNorm.length : 0);
+  }
+  function setProgress(v) { progSmall.style.width = Math.round(v * 100) + "%"; }
+  function goto(i) { var p = pages(); index = Math.max(0, Math.min(i, p.length - 1)); heardEl.textContent = ""; render(); }
+
+  // ---- diagnostic ----
+  var dbg = { started:0, results:0, nomatch:0, audio:false, sound:false, speech:false, lastPhrase:"", lastError:"" };
+  var debugOn = false;
+  function updateDebug() {
+    if (!debugOn) return;
+    debugEl.textContent =
+      "démarr:" + dbg.started + " · résultats:" + dbg.results + " · nomatch:" + dbg.nomatch +
+      " | audio:" + (dbg.audio ? "✔" : "—") + " son:" + (dbg.sound ? "✔" : "—") + " parole:" + (dbg.speech ? "✔" : "—") +
+      (dbg.lastError ? " | ⚠ " + dbg.lastError : "") +
+      (dbg.lastPhrase ? " | « " + dbg.lastPhrase.slice(0, 40) + " »" : " | (aucune transcription)");
+  }
+  function toggleDebug() {
+    debugOn = !debugOn; debugEl.style.display = debugOn ? "block" : "none"; if (debugOn) updateDebug();
+  }
+
+  // ---- reconnaissance vocale ----
+  function initRecognizer() {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { statusEl.textContent = "Reconnaissance vocale non disponible dans ce navigateur"; return; }
+    var r = new SR();
+    r.lang = "ar-SA"; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
+    r.onstart = function () { srRunning = true; statusEl.textContent = "🟢 Écoute en cours"; paintWords(); dbg.started++; updateDebug(); };
+    r.onaudiostart  = function () { dbg.audio = true; updateDebug(); };
+    r.onsoundstart  = function () { dbg.sound = true; updateDebug(); };
+    r.onspeechstart = function () { dbg.speech = true; updateDebug(); };
+    r.onspeechend   = function () { dbg.speech = false; updateDebug(); };
+    r.onnomatch     = function () { dbg.nomatch++; updateDebug(); };
+    r.onerror = function (e) {
+      if (e.error === "no-speech") { statusEl.textContent = "⏸️ En attente de la reprise…"; return; }
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") { restartWanted = false; statusEl.textContent = "🚫 Micro bloqué : autorisez-le (🔒 barre d'adresse) puis relancez."; }
+      else if (e.error === "audio-capture") { restartWanted = false; statusEl.textContent = "🎙️ Aucun micro détecté."; }
+      else if (e.error === "network") { restartWanted = false; listening = false; updateListenBtn(); statusEl.textContent = "🌐 Ouvrez l'app en https:// (le moteur ne marche pas en fichier local)."; }
+      else if (e.error !== "aborted") statusEl.textContent = "Micro : " + e.error;
+      dbg.lastError = e.error; updateDebug();
+    };
+    r.onend = function () {
+      srRunning = false;
+      if (restartWanted && !paused) {
+        setTimeout(function () { if (restartWanted && !paused && !srRunning) { try { r.start(); } catch (e) {} } }, 250);
+      } else { listening = false; updateListenBtn(); paintWords(); }
+    };
+    r.onresult = function (event) {
+      var phrase = "";
+      for (var i = event.resultIndex; i < event.results.length; i++) phrase += " " + event.results[i][0].transcript;
+      phrase = phrase.trim();
+      heardEl.textContent = phrase ? "Entendu : " + phrase : "";
+      dbg.results++; dbg.lastPhrase = phrase; updateDebug();
+
+      var heard = wordsOf(phrase);
+      var p = pages();
+      if (!curNorm.length || !heard.length) return;
+
+      // --- Suivi STRICTEMENT DANS L'ORDRE (pilote la surbrillance ET le changement) ---
+      var recent = heard.slice(-40);
+      var ptr = matchPtr;
+      for (var h = 0; h < recent.length; h++) {
+        if (ptr >= curNorm.length) break;
+        if (wordEq(recent[h], curNorm[ptr])) { ptr++; continue; }
+        if (ptr + 1 < curNorm.length && wordEq(recent[h], curNorm[ptr + 1])) { ptr += 2; continue; } // tolère 1 mot mal transcrit
+      }
+      if (ptr > matchPtr) { matchPtr = ptr; paintWords(); }
+
+      // --- Changement de page : DÉTECTION DES 2 DERNIERS MOTS du bloc affiché ---
+      // On tourne dès que les 2 derniers mots du bloc sont reconnus (consécutivement).
+      // La Sensibilité ajuste la tolérance : bas = 1 mot final suffit, haut = les 2 exigés.
+      var tailN = curNorm.length >= 2 ? 2 : 1;
+      var lastWords = curNorm.slice(-tailN);          // 2 derniers mots du bloc
+      var scan = heard.slice(-6);                     // fenêtre récente d'écoute
+
+      // cherche les 2 derniers mots dans l'ordre, proches l'un de l'autre
+      var hitLast = false, hitPrev = false;
+      for (var s = 0; s < scan.length; s++) {
+        if (wordEq(scan[s], lastWords[lastWords.length - 1])) hitLast = true;
+        if (lastWords.length === 2 && wordEq(scan[s], lastWords[0])) hitPrev = true;
+      }
+
+      // Sensibilité haute (≥0.7) : exige les 2 mots. Sensibilité basse : le dernier mot suffit.
+      var strict = threshold >= 0.7;
+      var trigger = (lastWords.length === 2)
+        ? (strict ? (hitPrev && hitLast) : hitLast)
+        : hitLast;
+
+      // Garde-fou : au moins la moitié du bloc doit avoir été parcourue.
+      // On combine 2 mesures pour survivre à un redémarrage du moteur vocal
+      // (qui vide event.results et remet matchPtr en retard) :
+      //  - progression séquentielle via matchPtr
+      //  - présence brute des mots du bloc dans la fenêtre d'écoute récente
+      var seqRatio = matchPtr / curNorm.length;
+      var recentSet = {};
+      for (var rs = 0; rs < recent.length; rs++) recentSet[recent[rs]] = 1;
+      var seen = 0;
+      for (var cn = 0; cn < curNorm.length; cn++) if (recentSet[curNorm[cn]]) seen++;
+      var presRatio = seen / curNorm.length;
+      var enoughRead = seqRatio >= 0.5 || presRatio >= 0.5;
+
+      if (trigger && enoughRead) {
+        console.log("MATCH DETECTE", { trigger: trigger, seqRatio: seqRatio, presRatio: presRatio, matchPtr: matchPtr, blocLen: curNorm.length });
+        console.log("PAGE AVANT", index);
+        statusEl.textContent = "✅ 2 derniers mots reconnus";
+        if (index < p.length - 1) { goto(index + 1); console.log("PAGE APRES", index); }
+        else { statusEl.textContent = "🏁 Dernier écran atteint"; console.log("PAGE APRES (dernier)", index); }
+      } else if (trigger && !enoughRead) {
+        console.log("TRIGGER IGNORE (enoughRead=false)", { seqRatio: seqRatio, presRatio: presRatio, matchPtr: matchPtr, blocLen: curNorm.length });
+      }
+    };
+    recognizer = r;
+  }
+
+  function updateListenBtn() {
+    if (listening) { listenBtn.textContent = "🔇 Arrêter"; listenBtn.className = "big stop"; }
+    else { listenBtn.textContent = "🎙 Écouter"; listenBtn.className = "big listen"; }
+    listenBtn.disabled = !auto; pauseBtn.disabled = !auto;
+  }
+  function reallyStart() {
+    if (srRunning) return;
+    try { recognizer.start(); }
+    catch (e) { if (e && e.name === "InvalidStateError") return; setTimeout(function () { try { recognizer.start(); } catch (_) {} }, 300); }
+  }
+  function startListen() {
+    if (!recognizer) { statusEl.textContent = "Reconnaissance vocale non disponible"; return; }
+    if (!auto) return;
+    if (location.protocol === "file:") statusEl.textContent = "⚠️ Fichier local : préférez https:// (GitHub Pages).";
+    restartWanted = true; paused = false; listening = true;
+    overlay.classList.add("hidden"); requestWakeLock(); updateListenBtn(); paintWords();
+    if (!micGranted && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      statusEl.textContent = "⏳ Autorisation du micro…";
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(function (stream) { micGranted = true; stream.getTracks().forEach(function (t) { t.stop(); }); reallyStart(); })
+        .catch(function () { restartWanted = false; listening = false; updateListenBtn(); statusEl.textContent = "🚫 Micro refusé (🔒 barre d'adresse ▸ autoriser)."; });
+    } else { reallyStart(); }
+  }
+  function stopListen() {
+    restartWanted = false; listening = false;
+    try { if (recognizer) recognizer.abort(); } catch (e) {}
+    srRunning = false; releaseWakeLock(); statusEl.textContent = "Arrêté"; updateListenBtn(); paintWords();
+  }
+  function togglePause() {
+    if (!paused) {
+      paused = true; try { if (recognizer) recognizer.abort(); } catch (e) {} srRunning = false;
+      statusEl.textContent = "🧎 En pause — position conservée (écran " + (index + 1) + ")";
+      pauseBtn.textContent = "▶ Reprendre"; overlay.classList.remove("hidden");
+    } else {
+      paused = false; pauseBtn.textContent = "⏸ Pause prière"; overlay.classList.add("hidden");
+      restartWanted = true; listening = true; requestWakeLock(); updateListenBtn(); setTimeout(reallyStart, 200);
+    }
+  }
+  function toggleFullscreen() { try { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); } catch (e) {} }
+
+  function showPlayer() { editor.style.display = "none"; player.style.display = "flex"; index = 0; render(); setProgress(0); statusEl.textContent = "Prêt à écouter"; }
+  function showEditor() { stopListen(); player.style.display = "none"; editor.style.display = "block"; refreshCount(); }
+
+  lpsInput.value = LINES_PER_SCREEN;
+  lpsInput.addEventListener("change", function () {
+    var v = parseInt(lpsInput.value, 10);
+    if (v >= 1 && v <= 8) { LINES_PER_SCREEN = v; try { localStorage.setItem("vp_lps", String(v)); } catch (e) {} refreshCount(); }
+    else { lpsInput.value = LINES_PER_SCREEN; }
+  });
+  $("start").addEventListener("click", function () { auto = autoEdit.checked; autoPlay.checked = auto; updateListenBtn(); showPlayer(); });
+  $("edit").addEventListener("click", showEditor);
+  $("fs").addEventListener("click", toggleFullscreen);
+  $("diagBtn").addEventListener("click", toggleDebug);
+  $("fdown").addEventListener("click", function () { fontSize = Math.max(28, fontSize - 4); render(); });
+  $("fup").addEventListener("click", function () { fontSize = Math.min(110, fontSize + 4); render(); });
+  $("prev").addEventListener("click", function () { goto(index - 1); });
+  $("next").addEventListener("click", function () { goto(index + 1); });
+  $("reset").addEventListener("click", function () { goto(0); });
+  $("resume").addEventListener("click", togglePause);
+  listenBtn.addEventListener("click", function () { listening ? stopListen() : startListen(); });
+  pauseBtn.addEventListener("click", togglePause);
+  thr.addEventListener("input", function () { threshold = Number(thr.value); thrVal.textContent = Math.round(threshold * 100) + " %"; });
+  autoPlay.addEventListener("change", function () { auto = autoPlay.checked; if (!auto) stopListen(); updateListenBtn(); });
+
+  document.addEventListener("keydown", function (e) {
+    if (player.style.display === "none") return;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") { goto(index + 1); e.preventDefault(); }
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { goto(index - 1); e.preventDefault(); }
+    else if (e.key === " ") { togglePause(); e.preventDefault(); }
+  });
+
+  initRecognizer();
+  updateListenBtn();
+})();
+</script>
+</body>
+</html>
