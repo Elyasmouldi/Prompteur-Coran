@@ -2,174 +2,695 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<meta name="theme-color" content="#000000" />
-<title>Prompteur vocal de récitation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+<meta name="theme-color" content="#6366f1" />
+<title>Apprentissage du Coran</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --emerald:#34d399; --amber:#fbbf24; --sky:#38bdf8; }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin:0; height:100%; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  body { background:#0c0a09; color:#f5f5f4; }
-  button { font: inherit; cursor: pointer; border:none; }
-  .hidden { display:none !important; }
-
-  #editor { min-height:100vh; padding:20px; }
-  .wrap { max-width: 900px; margin: 0 auto; }
-  .tag { color: var(--emerald); font-weight:600; margin:0; }
-  h1 { font-size: clamp(28px,5vw,48px); margin:4px 0 6px; }
-  .muted { color:#a8a29e; margin:0 0 16px; font-size:15px; }
-  textarea {
-    width:100%; min-height:44vh; resize:vertical; border-radius:18px;
-    background:#0c0a09; border:1px solid #44403c; color:#f5f5f4;
-    padding:18px; font-size:22px; line-height:1.9; outline:none;
+  :root { 
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --secondary: #ec4899;
+    --accent: #06b6d4;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --text: #1f2937;
+    --text-light: #6b7280;
+    --glass-border: rgba(255, 255, 255, 0.3);
   }
-  textarea:focus { border-color: var(--emerald); }
-  .card { background:#1c1917; border:1px solid #292524; border-radius:20px; padding:18px; box-shadow:0 20px 40px rgba(0,0,0,.4); }
-  .row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; }
-  .row .left { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
-  label.ck { display:flex; align-items:center; gap:8px; font-size:14px; color:#d6d3d1; cursor:pointer; }
-  .library { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
-  .library label { font-size:14px; color:#d6d3d1; }
-  select {
-    background:#0c0a09; color:#f5f5f4; border:1px solid #44403c; border-radius:12px;
-    padding:10px 14px; font-size:15px; outline:none; min-width:240px; cursor:pointer;
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+    line-height: 1.6;
+    background: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 15px;
+    position: relative;
+    overflow-x: hidden;
   }
-  select:focus { border-color: var(--emerald); }
-  .lib-hint { font-size:12px; color:#78716c; }
-  .btn-primary { background:var(--emerald); color:#0c0a09; padding:12px 26px; border-radius:16px; font-weight:600; font-size:16px; }
-  .btn-primary:hover { background:#6ee7b7; }
-  .hint { color:#78716c; font-size:12px; margin-top:12px; }
 
-  #player { display:none; flex-direction:column; height:100vh; background:#000; }
-  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,.1); }
-  .screen-num { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--emerald); }
-  #status { font-size:13px; color:rgba(255,255,255,.6); max-width:60vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .icons { display:flex; align-items:center; gap:6px; }
-  .icon { width:42px; height:42px; border-radius:50%; background:transparent; color:#fff; font-size:16px; display:grid; place-items:center; }
-  .icon:hover { background:rgba(255,255,255,.1); }
+  /* Blobs décoratifs animés en fond */
+  body::before, body::after {
+    content: "";
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.5;
+    z-index: 0;
+    pointer-events: none;
+  }
+  body::before {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, #ec4899, transparent 70%);
+    top: -100px; left: -100px;
+    animation: float 20s ease-in-out infinite;
+  }
+  body::after {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, #06b6d4, transparent 70%);
+    bottom: -150px; right: -150px;
+    animation: float 25s ease-in-out infinite reverse;
+  }
 
-  main { flex:1; display:grid; place-items:center; padding:24px; position:relative; overflow:hidden; }
-  #passage { max-width:1100px; text-align:center; font-family: Georgia, "Times New Roman", serif; line-height:1.95; transition:opacity .25s; }
-  #passage.ar { font-family: "Traditional Arabic", "Amiri", "Scheherazade New", Georgia, serif; }
-  #passage .w { transition: color .18s, background .18s; padding:0 .04em; border-radius:6px; }
-  #passage .w.read { color: var(--emerald); }
-  #passage .w.current { color:#0c0a09; background: var(--emerald); }
-  #passage .line { margin:.35em 0; }
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(50px, 50px) scale(1.1); }
+  }
 
-  .overlay { position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.62); backdrop-filter:blur(4px); text-align:center; }
-  .overlay p { color:var(--amber); font-size:18px; margin:12px 0; }
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
 
-  footer { padding:14px 16px; border-top:1px solid rgba(255,255,255,.1); background:rgba(12,10,9,.9); }
-  .foot { max-width:1000px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
-  .bars { display:flex; align-items:center; gap:12px; }
-  .bar { flex:1; height:6px; border-radius:6px; background:rgba(255,255,255,.1); overflow:hidden; }
-  .bar > i { display:block; height:100%; width:0; background:var(--emerald); transition:width .3s; }
-  .bar.small { width:96px; flex:none; }
-  .bar.small > i { background:var(--sky); }
-  #heard { text-align:center; font-size:13px; color:rgba(255,255,255,.45); direction:rtl; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .controls { display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; }
-  .nav { width:48px; height:48px; border-radius:50%; border:1px solid rgba(255,255,255,.2); background:transparent; color:#fff; font-size:20px; }
-  .nav:disabled { opacity:.35; }
-  .big { height:56px; padding:0 22px; border-radius:28px; font-size:16px; font-weight:600; display:inline-flex; align-items:center; gap:8px; }
-  .listen { background:var(--emerald); color:#000; }
-  .stop { background:#ef4444; color:#fff; }
-  .pause { height:56px; padding:0 20px; border-radius:28px; border:1px solid rgba(251,191,36,.5); background:rgba(251,191,36,.12); color:#fde68a; font-weight:600; }
-  .pause:disabled { opacity:.35; }
-  .settings { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:18px; font-size:12px; color:rgba(255,255,255,.5); }
-  .settings input[type=range] { accent-color:var(--emerald); }
-  .settings label { display:flex; align-items:center; gap:8px; cursor:pointer; }
+  /* ---- TAB NAVIGATION ---- */
+  .tab-nav { 
+    display: flex; 
+    gap: 8px; 
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    padding: 8px;
+    margin-bottom: 25px;
+    border-radius: 20px;
+    overflow-x: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    position: relative;
+    z-index: 10;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .tab-btn { 
+    flex: 1; 
+    min-width: 130px; 
+    padding: 14px 20px; 
+    font-size: 14px; 
+    font-weight: 600; 
+    color: rgba(255, 255, 255, 0.85);
+    background: transparent; 
+    border: none; 
+    cursor: pointer; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    transition: all .3s cubic-bezier(0.4, 0, 0.2, 1); 
+    border-radius: 14px;
+    text-align: center;
+    position: relative;
+  }
+  
+  .tab-btn:hover { 
+    background: rgba(255, 255, 255, 0.15); 
+    color: white;
+    transform: translateY(-2px);
+  }
+  
+  .tab-btn.active { 
+    color: white; 
+    background: linear-gradient(135deg, var(--secondary), var(--primary));
+    box-shadow: 0 8px 20px rgba(236, 72, 153, 0.4);
+    transform: translateY(-2px);
+  }
+
+  /* ---- TAB CONTENT ---- */
+  .tabs-container { min-height: calc(100vh - 130px); position: relative; z-index: 1; }
+  .tab-content { display: none; animation: fadeIn 0.5s ease; }
+  .tab-content.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- COMMON ELEMENTS ---- */
+  h1 { 
+    text-align: center; 
+    margin-bottom: 25px; 
+    color: white; 
+    font-size: 2.2rem;
+    font-weight: 700;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+    letter-spacing: -0.5px;
+  }
+  h2 { 
+    text-align: center; 
+    margin-bottom: 20px; 
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    font-size: 1.5rem;
+  }
+
+  .card { 
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px; 
+    padding: 28px; 
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15); 
+    margin-bottom: 25px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Inputs / selects / textareas */
+  label { color: var(--text) !important; }
+  select, input[type="number"], textarea {
+    width: 100%;
+    padding: 12px 16px !important;
+    border-radius: 12px !important;
+    border: 2px solid #e5e7eb !important;
+    font-size: 15px !important;
+    font-family: inherit;
+    background: white;
+    color: var(--text);
+    transition: all 0.3s ease;
+  }
+  select:focus, input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  }
+
+  .buttons-container {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 25px;
+  }
+
+  .action-btn {
+    padding: 14px 32px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 170px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  }
+
+  .action-btn::before {
+    content: "";
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+  .action-btn:hover::before { left: 100%; }
+
+  .action-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.25); }
+  .action-btn:active { transform: translateY(-1px); }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
+  #qiraa-listen { background: linear-gradient(135deg, var(--secondary), #db2777); }
+  #qiraa-prev, #qiraa-next { background: linear-gradient(135deg, var(--accent), #0891b2) !important; }
+  #qiraa-reset { background: linear-gradient(135deg, var(--warning), #d97706) !important; }
+  #qiraa-edit { background: linear-gradient(135deg, #6b7280, #4b5563) !important; }
+  #qiraa-load-num { background: linear-gradient(135deg, var(--accent), #0891b2) !important; }
+
+  /* ---- QIRAA PROMPTEUR STYLES ---- */
+  #qiraa-passage {
+    font-size: clamp(1.8rem, 5vw, 2.5rem);
+    line-height: 2;
+    direction: rtl;
+    text-align: center;
+    padding: 35px 25px;
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+    border-radius: 20px;
+    margin: 20px 0;
+    font-family: Georgia, "Times New Roman", serif;
+    border: 2px solid #e5e7eb;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  #qiraa-passage .w { 
+    transition: all .25s ease; 
+    padding: 0 .08em; 
+    border-radius: 8px; 
+    cursor: default; 
+    display: inline-block;
+  }
+
+  #qiraa-passage .w.read { 
+    color: var(--success); 
+    font-weight: 600;
+  }
+  #qiraa-passage .w.current { 
+    color: white; 
+    background: linear-gradient(135deg, var(--secondary), var(--primary));
+    font-weight: 700; 
+    border-radius: 10px; 
+    padding: 0 .15em;
+    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+    transform: scale(1.05);
+  }
+  #qiraa-passage .line { margin: .6em 0; word-spacing: .15em; letter-spacing: .02em; }
+
+  .progress-bar {
+    width: 100%;
+    height: 12px;
+    border-radius: 20px;
+    background: rgba(0,0,0,.08);
+    overflow: hidden;
+    margin: 25px 0;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  .progress-bar > i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+    transition: width .4s ease;
+    border-radius: 20px;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  #qiraa-heard {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-light);
+    margin: 15px 0;
+    min-height: 22px;
+    font-style: italic;
+  }
+
+  .status-box {
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    padding: 14px 20px;
+    border-radius: 14px;
+    margin: 15px 0;
+    text-align: center;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .hidden { display: none !important; }
+
+  /* ---- CONJUGAISON STYLES ---- */
+  #conjugationTable td {
+    padding: 12px 15px;
+    text-align: center;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 1.15em;
+    line-height: 1.6;
+  }
+  #conjugationTable tr:hover td { background: rgba(99, 102, 241, 0.04); }
+  #conjugationTable td.tense-cell {
+    color: white;
+    font-weight: 700;
+    font-size: 1.2em;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    padding: 20px 12px;
+  }
+  #conjugationTable td.past    { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  #conjugationTable td.present { background: linear-gradient(135deg, #10b981, #059669); }
+  #conjugationTable td.future  { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+  .unchanged {
+    color: var(--secondary);
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
+
+  /* ---- PENDU / JEUX ---- */
+  #hangman {
+    font-family: 'Courier New', monospace;
+    white-space: pre;
+    font-size: 18px;
+    text-align: center;
+    color: var(--primary-dark);
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    padding: 20px;
+    border-radius: 16px;
+    margin: 15px 0;
+    display: inline-block;
+    width: 100%;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.08);
+    font-weight: bold;
+  }
+  #word-display {
+    font-size: 2.5em;
+    text-align: center;
+    margin: 25px 0;
+    letter-spacing: 10px;
+    direction: rtl;
+    color: var(--primary-dark);
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff, #f9fafb);
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+  #keyboard {
+    margin: 20px 0;
+    padding: 15px;
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    border-radius: 16px;
+    direction: rtl;
+  }
+  .keyboard-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .keyboard-key {
+    padding: 10px 8px;
+    font-size: 1.3em;
+    background: linear-gradient(135deg, white, #f3f4f6);
+    color: var(--text);
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    flex: 1;
+    min-width: 32px;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+  .keyboard-key:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(99, 102, 241, 0.35);
+  }
+  .keyboard-key:disabled, .keyboard-key.disabled {
+    background: #d1d5db;
+    color: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+    border-color: #d1d5db;
+  }
+  #hangman-message {
+    text-align: center;
+    font-size: 1.3em;
+    font-weight: 700;
+    margin: 20px 0;
+    min-height: 30px;
+    padding: 10px;
+    color: var(--primary-dark);
+  }
+  #hangman-message.win { color: var(--success); }
+  #hangman-message.lose { color: var(--danger); }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 768px) {
+    body { padding: 10px; }
+    .container { padding: 10px; }
+    .tab-btn { min-width: 90px; padding: 10px 12px; font-size: 11px; }
+    .action-btn { min-width: 130px; padding: 12px 20px; font-size: 0.9rem; }
+    h1 { font-size: 1.6rem; }
+    .card { padding: 20px; border-radius: 20px; }
+  }
 </style>
 </head>
 <body>
 
-<div id="editor">
-  <div class="wrap">
-    <p class="tag">Prompteur vocal</p>
-    <h1>Préparer la récitation</h1>
-    <p class="muted">Chaque retour à la ligne crée un nouvel écran. Le texte est sauvegardé automatiquement dans ce navigateur.</p>
-    <div class="card">
-      <div class="library">
-        <label for="surah">📖 Bibliothèque de sourates :</label>
-        <select id="surah"><option value="">— Choisir une sourate —</option></select>
-        <span class="lib-hint">Charge le texte ci-dessous (un verset = un écran).</span>
-      </div>
-      <div class="library">
-        <label for="surahNum">🔢 Charger n'importe quelle sourate (1–114) :</label>
-        <input type="number" id="surahNum" min="1" max="114" placeholder="ex. 55" style="width:90px;background:#0c0a09;color:#f5f5f4;border:1px solid #44403c;border-radius:12px;padding:10px 12px;font-size:15px;outline:none;" />
-        <button id="loadNum" style="background:#292524;color:#f5f5f4;border:1px solid #44403c;border-radius:12px;padding:10px 16px;font-size:14px;">Charger</button>
-        <span id="numStatus" class="lib-hint"></span>
-      </div>
-      <textarea id="text" aria-label="Texte à réciter"></textarea>
-      <div class="row">
-        <div class="left">
-          <span id="count" class="muted" style="margin:0;"></span>
-          <label class="ck"><input type="checkbox" id="autoEdit" checked /> Avance vocale automatique</label>
-          <label class="ck">Versets/écran
-            <input type="number" id="lpsInput" min="1" max="8" value="4" style="width:60px;background:#0c0a09;color:#f5f5f4;border:1px solid #44403c;border-radius:10px;padding:6px 8px;font-size:14px;outline:none;" />
-          </label>
-        </div>
-        <button class="btn-primary" id="start">▶ Lancer le prompteur</button>
-      </div>
-    </div>
-    <p class="hint">Astuce : ouvrez l'app en https:// (GitHub Pages) et autorisez le micro. En prière, l'écran reste allumé.</p>
-  </div>
+<!-- TAB NAVIGATION -->
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="lecture">📖 Récitation</button>
+  <button class="tab-btn" data-tab="reading">📚 Lecture</button>
+  <button class="tab-btn" data-tab="writing">✍️ Écriture</button>
+  <button class="tab-btn" data-tab="grammar">🎓 Grammaire</button>
+  <button class="tab-btn" data-tab="conjugation">🔤 Conjugaison</button>
+  <button class="tab-btn" data-tab="games">🎮 Jeux</button>
 </div>
 
-<div id="player">
-  <header>
-    <div style="min-width:0;">
-      <div class="screen-num"><span id="scr">Écran 1 / 1</span></div>
-      <div id="status">Prêt</div>
-    </div>
-    <div class="icons">
-      <button class="icon" id="fdown" title="Réduire">A−</button>
-      <button class="icon" id="fup" title="Agrandir">A+</button>
-      <button class="icon" id="fs" title="Plein écran">⛶</button>
-      <button class="icon" id="diagBtn" title="Diagnostic micro">🔎</button>
-      <button class="icon" id="edit" title="Éditer">⚙</button>
-    </div>
-  </header>
+<div class="tabs-container">
 
-  <main>
-    <div id="passage"></div>
-    <div id="overlay" class="overlay hidden">
-      <div>
-        <div style="font-size:34px;">🌙</div>
-        <p>En attente — reprise à l'écran <span id="ovScr">1</span></p>
-        <button class="big listen" id="resume">▶ Reprendre</button>
-      </div>
-    </div>
-  </main>
+  <!-- TAB 1: LECTURE (PROMPTEUR VOCAL) -->
+  <div id="lecture" class="tab-content active">
+    <div class="container">
+      <h1>📖 Récitation Vocale</h1>
 
-  <footer>
-    <div class="foot">
-      <div class="bars">
-        <div class="bar"><i id="prog"></i></div>
-        <div class="bar small" title="Progression dans le passage"><i id="progSmall"></i></div>
+      <!-- EDITOR VIEW -->
+      <div id="editor-section">
+        <div class="card">
+          <h2>Préparer la récitation</h2>
+          <div style="margin-bottom: 15px;">
+            <label for="qiraa-surah" style="font-weight: 600; display: block; margin-bottom: 8px;">Bibliothèque de sourates :</label>
+            <select id="qiraa-surah" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ddd;">
+              <option value="">— Choisir une sourate —</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Charger par numéro (1–114) :</label>
+            <div style="display: flex; gap: 10px;">
+              <input type="number" id="qiraa-num" min="1" max="114" placeholder="ex. 55" style="flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #ddd;" />
+              <button id="qiraa-load-num" class="action-btn" style="background: var(--accent); min-width: 100px;">Charger</button>
+            </div>
+            <span id="qiraa-num-status" style="font-size: 12px; color: #666; display: block; margin-top: 8px;"></span>
+          </div>
+          <textarea id="qiraa-text" style="width: 100%; min-height: 25vh; padding: 15px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px;" placeholder="Texte à réciter..."></textarea>
+          <div style="display: flex; gap: 15px; margin-top: 15px; flex-wrap: wrap;">
+            <span id="qiraa-count" style="font-weight: 600;"></span>
+          </div>
+          <div style="margin-top: 20px;">
+            <button class="action-btn btn-primary" id="qiraa-start" style="width: 100%;">▶ Lancer la récitation</button>
+          </div>
+        </div>
       </div>
-      <div id="heard"></div>
-      <div id="debug" style="display:none;text-align:center;font-size:12px;color:#38bdf8;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;padding:6px 10px;margin:0 auto;max-width:660px;font-family:monospace;"></div>
-      <div class="controls">
-        <button class="nav" id="prev" title="Précédent">‹</button>
-        <button class="big listen" id="listen">🎙 Écouter</button>
-        <button class="pause" id="pauseBtn">⏸ Pause prière</button>
-        <button class="nav" id="next" title="Suivant">›</button>
-        <button class="nav" id="reset" title="Recommencer">↺</button>
-      </div>
-      <div class="settings">
-        <label><input type="checkbox" id="autoPlay" checked /> Avance automatique</label>
-        <label>Sensibilité
-          <input type="range" id="thr" min="0.4" max="0.9" step="0.02" value="0.6" />
-          <span id="thrVal">60 %</span>
-        </label>
+
+      <!-- PLAYER VIEW -->
+      <div id="qiraa-player" style="display: none;">
+        <div class="card">
+          <div style="text-align: center;">
+            <p style="font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 2px;">
+              Écran <span id="qiraa-scr">1</span> / <span id="qiraa-total">1</span>
+            </p>
+            <div id="qiraa-status" class="status-box">Prêt</div>
+          </div>
+
+          <div id="qiraa-passage"></div>
+
+          <div class="progress-bar">
+            <i id="qiraa-prog"></i>
+          </div>
+
+          <div id="qiraa-heard"></div>
+
+          <div class="buttons-container">
+            <button class="action-btn" id="qiraa-prev" style="background: var(--accent);">‹ Précédent</button>
+            <button class="action-btn btn-primary" id="qiraa-listen">🎙 Écouter</button>
+            <button class="action-btn" id="qiraa-next" style="background: var(--accent);">Suivant ›</button>
+          </div>
+
+          <div class="buttons-container">
+            <button class="action-btn" id="qiraa-reset" style="background: #ff9800;">↺ Recommencer</button>
+            <button class="action-btn" id="qiraa-edit" style="background: #666;">⚙ Éditer</button>
+          </div>
+        </div>
       </div>
     </div>
-  </footer>
+  </div>
+
+  <!-- TAB 2: LECTURE -->
+  <div id="reading" class="tab-content">
+    <div class="container">
+      <h1>📚 Lecture</h1>
+      <div class="card">
+        <h2>Lisez le Coran</h2>
+        <p>Contenu de lecture à venir...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: ÉCRITURE -->
+  <div id="writing" class="tab-content">
+    <div class="container">
+      <h1>✍️ Écriture Arabe</h1>
+      <div class="card">
+        <h2>Pratiquez l'écriture</h2>
+        <p>Exercices d'écriture arabe à venir...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: GRAMMAIRE -->
+  <div id="grammar" class="tab-content">
+    <div class="container">
+      <h1>🎓 Grammaire Arabe</h1>
+      <div class="card">
+        <h2>Apprenez la grammaire</h2>
+        <p>Cours de grammaire à venir...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: CONJUGAISON -->
+  <div id="conjugation" class="tab-content">
+    <div class="container">
+      <h1>🔤 Conjugaison Arabe</h1>
+      <div class="card">
+        <h2>قاموس تصريف الأفعال العربية</h2>
+        <div style="direction: rtl; text-align: right;">
+          <label for="verbSelect" style="font-weight: 600; display: block; margin-bottom: 8px; font-size: 1.1em;">اختر فعلاً :</label>
+          <select id="verbSelect" style="width: 100%; font-size: 1.2em;">
+            <option value="كتب">كتب</option>
+            <option value="قرأ">قرأ</option>
+            <option value="ذهب">ذهب</option>
+            <option value="أكل">أكل</option>
+            <option value="شرب">شرب</option>
+            <option value="لعب">لعب</option>
+            <option value="نام">نام</option>
+            <option value="سافر">سافر</option>
+            <option value="جلس">جلس</option>
+            <option value="قام">قام</option>
+            <option value="ركض">ركض</option>
+            <option value="غنى">غنى</option>
+            <option value="ضحك">ضحك</option>
+            <option value="بكى">بكى</option>
+            <option value="سبح">سبح</option>
+            <option value="رسم">رسم</option>
+            <option value="قرر">قرر</option>
+            <option value="زرع">زرع</option>
+            <option value="بنى">بنى</option>
+            <option value="فتح">فتح</option>
+            <option value="غلق">غلق</option>
+            <option value="دخل">دخل</option>
+            <option value="خرج">خرج</option>
+            <option value="حفظ">حفظ</option>
+            <option value="بحث">بحث</option>
+          </select>
+        </div>
+
+        <p id="translation" style="font-size: 1.2em; padding: 15px; background: linear-gradient(135deg, #f3f4f6, #e5e7eb); border-radius: 12px; margin: 20px 0; text-align: center; font-weight: 600; color: var(--text);"></p>
+
+        <div style="overflow-x: auto; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+          <table id="conjugationTable" style="width: 100%; border-collapse: collapse; background: white; direction: rtl;">
+            <thead>
+              <tr>
+                <th style="padding: 15px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; font-size: 1.1em; border: none;">الزمن</th>
+                <th style="padding: 15px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; font-size: 1.1em; border: none;">الضمير</th>
+                <th style="padding: 15px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; font-size: 1.1em; border: none;">التصريف</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 6: JEUX (PENDU ARABE) -->
+  <div id="games" class="tab-content">
+    <div class="container">
+      <h1>🎮 Jeu du Pendu</h1>
+      <div class="card">
+        <h2>خمّن الكلمة بالعربية</h2>
+        <div id="hangman"></div>
+        <div id="word-display"></div>
+        <div id="keyboard">
+          <div class="keyboard-row">
+            <button class="keyboard-key" data-key="ا">ا</button>
+            <button class="keyboard-key" data-key="ب">ب</button>
+            <button class="keyboard-key" data-key="ت">ت</button>
+            <button class="keyboard-key" data-key="ث">ث</button>
+            <button class="keyboard-key" data-key="ج">ج</button>
+            <button class="keyboard-key" data-key="ح">ح</button>
+            <button class="keyboard-key" data-key="خ">خ</button>
+          </div>
+          <div class="keyboard-row">
+            <button class="keyboard-key" data-key="د">د</button>
+            <button class="keyboard-key" data-key="ذ">ذ</button>
+            <button class="keyboard-key" data-key="ر">ر</button>
+            <button class="keyboard-key" data-key="ز">ز</button>
+            <button class="keyboard-key" data-key="س">س</button>
+            <button class="keyboard-key" data-key="ش">ش</button>
+            <button class="keyboard-key" data-key="ص">ص</button>
+          </div>
+          <div class="keyboard-row">
+            <button class="keyboard-key" data-key="ض">ض</button>
+            <button class="keyboard-key" data-key="ط">ط</button>
+            <button class="keyboard-key" data-key="ظ">ظ</button>
+            <button class="keyboard-key" data-key="ع">ع</button>
+            <button class="keyboard-key" data-key="غ">غ</button>
+            <button class="keyboard-key" data-key="ف">ف</button>
+            <button class="keyboard-key" data-key="ق">ق</button>
+          </div>
+          <div class="keyboard-row">
+            <button class="keyboard-key" data-key="ك">ك</button>
+            <button class="keyboard-key" data-key="ل">ل</button>
+            <button class="keyboard-key" data-key="م">م</button>
+            <button class="keyboard-key" data-key="ن">ن</button>
+            <button class="keyboard-key" data-key="ه">ه</button>
+            <button class="keyboard-key" data-key="و">و</button>
+            <button class="keyboard-key" data-key="ي">ي</button>
+          </div>
+          <div class="keyboard-row">
+            <button class="keyboard-key" data-key="ة">ة</button>
+            <button class="keyboard-key" data-key="ء">ء</button>
+            <button class="keyboard-key" data-key="ؤ">ؤ</button>
+            <button class="keyboard-key" data-key="ئ">ئ</button>
+            <button class="keyboard-key" data-key="أ">أ</button>
+            <button class="keyboard-key" data-key="إ">إ</button>
+            <button class="keyboard-key" data-key="آ">آ</button>
+          </div>
+        </div>
+        <div id="hangman-message"></div>
+        <div class="buttons-container">
+          <button id="reset-button" class="action-btn btn-primary">↻ Recommencer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
 (function () {
   "use strict";
+
+  // ---- TAB SWITCHING ----
+  var tabBtns = document.querySelectorAll(".tab-btn");
+  var tabContents = document.querySelectorAll(".tab-content");
+
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var tabId = btn.getAttribute("data-tab");
+      tabBtns.forEach(function (b) { b.classList.remove("active"); });
+      tabContents.forEach(function (c) { c.classList.remove("active"); });
+      btn.classList.add("active");
+      document.getElementById(tabId).classList.add("active");
+      
+      if (tabId === "lecture" && document.getElementById("qiraa-player").style.display !== "none") {
+        setTimeout(function () { renderQiraa(); }, 100);
+      }
+    });
+  });
 
   var SURAHS = [
     { n: 1, name: "الفاتحة — Al-Fâtiha", text:
@@ -179,14 +700,7 @@
     { n: 113, name: "الفلق — Al-Falaq", text:
       "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ\nمِن شَرِّ مَا خَلَقَ\nوَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ\nوَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ\nوَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ" },
     { n: 114, name: "الناس — An-Nâs", text:
-      "قُلْ أَعُوذُ بِرَبِّ النَّاسِ\nمَلِكِ النَّاسِ\nإِلَٰهِ النَّاسِ\nمِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ\nالَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ\nمِنَ الْجِنَّةِ وَالنَّاسِ" },
-    { n: 108, name: "الكوثر — Al-Kawthar", text:
-      "إِنَّا أَعْطَيْنَاكَ الْكَوْثَرَ\nفَصَلِّ لِرَبِّكَ وَانْحَرْ\nإِنَّ شَانِئَكَ هُوَ الْأَبْتَرُ" },
-    { n: 103, name: "العصر — Al-'Asr", text:
-      "وَالْعَصْرِ\nإِنَّ الْإِنسَانَ لَفِي خُسْرٍ\nإِلَّا الَّذِينَ آمَنُوا وَعَمِلُوا الصَّالِحَاتِ وَتَوَاصَوْا بِالْحَقِّ وَتَوَاصَوْا بِالصَّبْرِ" },
-    { n: 18, name: "الكهف — Al-Kahf (110 versets)", fetch: true },
-    { n: 36, name: "يس — Yâ-Sîn (83 versets)", fetch: true },
-    { n: 67, name: "الملك — Al-Mulk (30 versets)", fetch: true }
+      "قُلْ أَعُوذُ بِرَبِّ النَّاسِ\nمَلِكِ النَّاسِ\nإِلَٰهِ النَّاسِ\nمِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ\nالَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ\nمِنَ الْجِنَّةِ وَالنَّاسِ" }
   ];
 
   function loadSurahRemote(n, onDone, onError) {
@@ -203,7 +717,6 @@
       .catch(function (err) { onError(err); });
   }
 
-  // ---- normalisation & comparaison floue ----
   function normalize(s) {
     return (s || "")
       .toLowerCase().normalize("NFD")
@@ -215,7 +728,9 @@
       .replace(/[^\p{L}\p{N}\s]/gu, " ")
       .replace(/\s+/g, " ").trim();
   }
+  
   function wordsOf(s) { return normalize(s).split(" ").filter(Boolean); }
+  
   function lev(a, b) {
     if (a === b) return 0;
     var la = a.length, lb = b.length; if (!la) return lb; if (!lb) return la;
@@ -225,318 +740,401 @@
         cur[j] = Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+c); } prev = cur; }
     return prev[lb];
   }
+  
   function wordEq(a, b) {
     if (!a || !b) return false;
     if (a === b) return true;
     var minLen = Math.min(a.length, b.length);
-    // préfixe commun seulement pour mots assez longs (évite faux positifs sur mots courts)
     if (minLen >= 4 && (a.indexOf(b) === 0 || b.indexOf(a) === 0)) return true;
     var maxLen = Math.max(a.length, b.length);
     var tol = maxLen >= 7 ? 2 : (maxLen >= 4 ? 1 : 0);
     return lev(a, b) <= tol;
   }
-  function similarity(a, b) {
-    var aa = wordsOf(a), bb = wordsOf(b);
-    if (!aa.length || !bb.length) return 0;
-    var common = 0;
-    for (var i = 0; i < aa.length; i++)
-      for (var j = 0; j < bb.length; j++)
-        if (wordEq(aa[i], bb[j])) { common++; break; }
-    return common / Math.min(aa.length, bb.length);
-  }
+  
   function isArabic(s) { return /[\u0600-\u06FF]/.test(s || ""); }
 
   var $ = function (id) { return document.getElementById(id); };
-  var editor = $("editor"), player = $("player");
-  var textEl = $("text"), countEl = $("count");
-  var passage = $("passage"), scrEl = $("scr"), statusEl = $("status");
-  var progEl = $("prog"), progSmall = $("progSmall"), heardEl = $("heard");
-  var overlay = $("overlay"), ovScr = $("ovScr");
-  var listenBtn = $("listen"), pauseBtn = $("pauseBtn");
-  var thr = $("thr"), thrVal = $("thrVal");
-  var autoPlay = $("autoPlay"), autoEdit = $("autoEdit");
-  var surahSel = $("surah"), debugEl = $("debug");
+  
+  // TAB 5: QIRAA
+  var qiraaEditorEl = $("editor-section"), qiraaPlayerEl = $("qiraa-player");
+  var qiraaTextEl = $("qiraa-text"), qiraaCountEl = $("qiraa-count");
+  var qiraaSurahSel = $("qiraa-surah");
+  var qiraaNum = $("qiraa-num"), qiraaLoadNum = $("qiraa-load-num"), qiraaNumStatus = $("qiraa-num-status");
+  var qiraaPassage = $("qiraa-passage"), qiraaScrEl = $("qiraa-scr"), qiraaTotalEl = $("qiraa-total");
+  var qiraaStatusEl = $("qiraa-status"), qiraaHeardEl = $("qiraa-heard"), qiraaProgEl = $("qiraa-prog");
+  var qiraaListenBtn = $("qiraa-listen"), qiraaEditBtn = $("qiraa-edit"), qiraaResetBtn = $("qiraa-reset");
+  var qiraaPrevBtn = $("qiraa-prev"), qiraaNextBtn = $("qiraa-next");
+  var qiraaStartBtn = $("qiraa-start");
 
-  var index = 0, listening = false, paused = false, fontSize = 52;
-  var threshold = 0.6, auto = true;
-  var recognizer = null, restartWanted = false, wakeLock = null;
-  var srRunning = false, micGranted = false;
+  var qiraaIndex = 0, qiraaListening = false, qiraaThreshold = 0.6;
+  var qiraaRecognizer = null, qiraaRestartWanted = false;
+  var qiraaRunning = false, qiraaMicGranted = false, qiraaPaused = false;
 
-  // remplir la bibliothèque
+  // INITIALIZE SURAHS
+  var cfg = { sel: qiraaSurahSel, textEl: qiraaTextEl, countEl: qiraaCountEl };
   SURAHS.forEach(function (s) {
     var o = document.createElement("option");
     o.value = String(s.n); o.textContent = s.n + ". " + s.name;
-    surahSel.appendChild(o);
+    cfg.sel.appendChild(o);
   });
-  surahSel.addEventListener("change", function () {
-    var s = SURAHS.filter(function (x) { return String(x.n) === surahSel.value; })[0];
-    if (!s) return;
-    function apply(txt) { textEl.value = txt; try { localStorage.setItem("vp_text", txt); } catch (e) {} refreshCount(); textEl.scrollTop = 0; surahSel.disabled = false; }
-    if (s.fetch) {
-      surahSel.disabled = true; textEl.value = "⏳ Chargement…";
-      loadSurahRemote(s.n, apply, function () { surahSel.disabled = false; textEl.value = "⚠️ Échec du chargement (connexion requise au 1er chargement)."; });
-    } else { apply(s.text); }
-  });
+    
+    cfg.sel.addEventListener("change", function () {
+      var s = SURAHS.filter(function (x) { return String(x.n) === cfg.sel.value; })[0];
+      if (!s) return;
+      function apply(txt) { 
+        cfg.textEl.value = txt; 
+        try { localStorage.setItem("vp_text", txt); } catch (e) {} 
+        refreshQiraaCount(cfg.countEl, cfg.textEl);
+        cfg.textEl.scrollTop = 0; 
+        cfg.sel.disabled = false; 
+      }
+      if (s.fetch) {
+        cfg.sel.disabled = true; 
+        cfg.textEl.value = "⏳ Chargement…";
+        loadSurahRemote(s.n, apply, function () { 
+          cfg.sel.disabled = false; 
+          cfg.textEl.value = "⚠️ Échec du chargement."; 
+        });
+      } else { 
+        apply(s.text); 
+      }
+    });
 
-  var surahNum = $("surahNum"), loadNum = $("loadNum"), numStatus = $("numStatus");
   function loadByNumber() {
-    var n = parseInt(surahNum.value, 10);
-    if (!(n >= 1 && n <= 114)) { numStatus.textContent = "⚠️ Numéro entre 1 et 114."; return; }
-    numStatus.textContent = "⏳ Chargement de la sourate " + n + "…"; loadNum.disabled = true;
+    var n = parseInt(qiraaNum.value, 10);
+    if (!(n >= 1 && n <= 114)) { qiraaNumStatus.textContent = "⚠️ Numéro entre 1 et 114."; return; }
+    qiraaNumStatus.textContent = "⏳ Chargement…"; qiraaLoadNum.disabled = true;
     loadSurahRemote(n, function (txt) {
-      textEl.value = txt; try { localStorage.setItem("vp_text", txt); } catch (e) {}
-      refreshCount(); textEl.scrollTop = 0;
-      numStatus.textContent = "✅ Sourate " + n + " chargée (cache hors ligne)."; loadNum.disabled = false; surahSel.value = "";
-    }, function () { numStatus.textContent = "⚠️ Échec — connexion requise au 1er chargement."; loadNum.disabled = false; });
+      qiraaTextEl.value = txt; try { localStorage.setItem("vp_text", txt); } catch (e) {}
+      refreshQiraaCount(qiraaCountEl, qiraaTextEl);
+      qiraaTextEl.scrollTop = 0;
+      qiraaNumStatus.textContent = "✅ Chargée."; qiraaLoadNum.disabled = false; qiraaSurahSel.value = "";
+    }, function () { qiraaNumStatus.textContent = "⚠️ Échec."; qiraaLoadNum.disabled = false; });
   }
-  loadNum.addEventListener("click", loadByNumber);
-  surahNum.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); loadByNumber(); } });
 
-  var lpsInput = $("lpsInput");
+  qiraaLoadNum.addEventListener("click", function () { loadByNumber(); });
+  qiraaNum.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); loadByNumber(); } });
 
-  try { textEl.value = localStorage.getItem("vp_text") || SURAHS[0].text; } catch (e) { textEl.value = SURAHS[0].text; }
-  var LINES_PER_SCREEN = 4; // regroupe 4 versets/lignes par écran
+  var LINES_PER_SCREEN = 4;
   try { var lps = parseInt(localStorage.getItem("vp_lps"), 10); if (lps >= 1 && lps <= 8) LINES_PER_SCREEN = lps; } catch (e) {}
-  function pages() {
-    var lines = textEl.value.split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
-    if (!lines.length) return ["Collez un texte pour commencer."];
+
+  function qiraaPages() {
+    var text = qiraaTextEl.value;
     var out = [];
-    for (var i = 0; i < lines.length; i += LINES_PER_SCREEN) {
-      out.push(lines.slice(i, i + LINES_PER_SCREEN).join("\n"));
-    }
-    return out;
+    var bismillahMatch = text.match(/^[\s]*(بِسْمِ\s+اللَّهِ\s+الرَّحْمَٰنِ\s+الرَّحِيمِ|بسم\s+الله\s+الرحمن\s+الرحيم)/i);
+    var remainingText = text;
+    if (bismillahMatch) { out.push(bismillahMatch[0].trim()); remainingText = text.slice(bismillahMatch[0].length).trim(); }
+    var lines = remainingText.split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    if (!lines.length && !bismillahMatch) return ["Collez un texte pour commencer."];
+    for (var i = 0; i < lines.length; i += LINES_PER_SCREEN) { out.push(lines.slice(i, i + LINES_PER_SCREEN).join("\n")); }
+    return out.length ? out : ["Collez un texte pour commencer."];
   }
-  function refreshCount() { var n = pages().length; countEl.textContent = n + " écran" + (n > 1 ? "s" : "") + " · " + LINES_PER_SCREEN + " versets/écran"; }
-  textEl.addEventListener("input", function () { try { localStorage.setItem("vp_text", textEl.value); } catch (e) {} refreshCount(); });
-  refreshCount();
 
-  function requestWakeLock() { try { if ("wakeLock" in navigator) navigator.wakeLock.request("screen").then(function (w) { wakeLock = w; }); } catch (e) {} }
-  function releaseWakeLock() { try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {} }
-  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && restartWanted) requestWakeLock(); });
+  function refreshQiraaCount(countEl, textEl) { var n = qiraaPages().length; countEl.textContent = n + " écran" + (n > 1 ? "s" : ""); }
 
-  // ---- rendu + surbrillance ----
-  var curNorm = [], matchPtr = 0;
-  function render() {
-    var p = pages();
-    if (index > p.length - 1) index = p.length - 1;
-    if (index < 0) index = 0;
-    var txt = p[index], ar = isArabic(txt);
-    curNorm = []; var wi = 0, html = "";
+  try { qiraaTextEl.value = localStorage.getItem("vp_text") || SURAHS[0].text; } catch (e) { qiraaTextEl.value = SURAHS[0].text; }
+  
+  qiraaTextEl.addEventListener("input", function () { try { localStorage.setItem("vp_text", qiraaTextEl.value); } catch (e) {} refreshQiraaCount(qiraaCountEl, qiraaTextEl); });
+  
+  refreshQiraaCount(qiraaCountEl, qiraaTextEl);
+
+  var qiraaCurNorm = [], qiraaMatchPtr = 0;
+
+  function renderQiraa() {
+    var p = qiraaPages();
+    if (qiraaIndex > p.length - 1) qiraaIndex = p.length - 1;
+    if (qiraaIndex < 0) qiraaIndex = 0;
+    var txt = p[qiraaIndex], ar = isArabic(txt);
+    qiraaCurNorm = []; var wi = 0, html = "";
     var lines = txt.split(/\n/);
     for (var L = 0; L < lines.length; L++) {
       var display = lines[L].split(/(\s+)/);
-      html += '<div class="line">';
+      html += '<div class="line" style="margin: .6em 0;">';
       for (var i = 0; i < display.length; i++) {
         var tok = display[i];
         if (/^\s+$/.test(tok)) { html += " "; continue; }
         var norm = normalize(tok);
-        if (norm) { curNorm.push(norm); html += '<span class="w" data-i="' + wi + '">' + tok + '</span>'; wi++; }
+        if (norm) { qiraaCurNorm.push(norm); html += '<span class="w" data-i="' + wi + '">' + tok + '</span>'; wi++; }
         else if (tok) { html += tok; }
       }
       html += '</div>';
     }
-    passage.innerHTML = html;
-    passage.className = ar ? "ar" : "";
-    passage.setAttribute("dir", ar ? "rtl" : "ltr");
-    passage.style.fontSize = "clamp(30px, " + (fontSize / 13) + "vw, " + fontSize + "px)";
-    scrEl.textContent = "Écran " + (index + 1) + " / " + p.length;
-    progEl.style.width = (((index + 1) / p.length) * 100) + "%";
-    $("prev").disabled = index === 0;
-    $("next").disabled = index === p.length - 1;
-    ovScr.textContent = index + 1;
-    matchPtr = 0; paintWords();
+    qiraaPassage.innerHTML = html;
+    qiraaPassage.className = ar ? "ar" : "";
+    qiraaPassage.setAttribute("dir", ar ? "rtl" : "ltr");
+    
+    qiraaScrEl.textContent = qiraaIndex + 1;
+    qiraaTotalEl.textContent = p.length;
+    qiraaPrevBtn.disabled = qiraaIndex === 0;
+    qiraaNextBtn.disabled = qiraaIndex === p.length - 1;
+    
+    qiraaMatchPtr = 0; 
+    qiraaPaintWords();
   }
-  function paintWords() {
-    var spans = passage.querySelectorAll(".w");
+
+  function qiraaPaintWords() {
+    var spans = qiraaPassage.querySelectorAll(".w");
     for (var i = 0; i < spans.length; i++)
-      spans[i].className = "w" + (i < matchPtr ? " read" : (i === matchPtr && srRunning ? " current" : ""));
-    setProgress(curNorm.length ? matchPtr / curNorm.length : 0);
-  }
-  function setProgress(v) { progSmall.style.width = Math.round(v * 100) + "%"; }
-  function goto(i) { var p = pages(); index = Math.max(0, Math.min(i, p.length - 1)); heardEl.textContent = ""; render(); }
-
-  // ---- diagnostic ----
-  var dbg = { started:0, results:0, nomatch:0, audio:false, sound:false, speech:false, lastPhrase:"", lastError:"" };
-  var debugOn = false;
-  function updateDebug() {
-    if (!debugOn) return;
-    debugEl.textContent =
-      "démarr:" + dbg.started + " · résultats:" + dbg.results + " · nomatch:" + dbg.nomatch +
-      " | audio:" + (dbg.audio ? "✔" : "—") + " son:" + (dbg.sound ? "✔" : "—") + " parole:" + (dbg.speech ? "✔" : "—") +
-      (dbg.lastError ? " | ⚠ " + dbg.lastError : "") +
-      (dbg.lastPhrase ? " | « " + dbg.lastPhrase.slice(0, 40) + " »" : " | (aucune transcription)");
-  }
-  function toggleDebug() {
-    debugOn = !debugOn; debugEl.style.display = debugOn ? "block" : "none"; if (debugOn) updateDebug();
+      spans[i].className = "w" + (i < qiraaMatchPtr ? " read" : (i === qiraaMatchPtr && qiraaRunning ? " current" : ""));
+    qiraaProgEl.style.width = Math.round((qiraaCurNorm.length ? qiraaMatchPtr / qiraaCurNorm.length : 0) * 100) + "%";
   }
 
-  // ---- reconnaissance vocale ----
-  function initRecognizer() {
+  function qiraaGoto(i) { var p = qiraaPages(); qiraaIndex = Math.max(0, Math.min(i, p.length - 1)); qiraaHeardEl.textContent = ""; renderQiraa(); }
+
+  function initQiraaRecognizer() {
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { statusEl.textContent = "Reconnaissance vocale non disponible dans ce navigateur"; return; }
+    if (!SR) { qiraaStatusEl.textContent = "Reconnaissance vocale indisponible"; return; }
     var r = new SR();
-    r.lang = "ar-SA"; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
-    r.onstart = function () { srRunning = true; statusEl.textContent = "🟢 Écoute en cours"; paintWords(); dbg.started++; updateDebug(); };
-    r.onaudiostart  = function () { dbg.audio = true; updateDebug(); };
-    r.onsoundstart  = function () { dbg.sound = true; updateDebug(); };
-    r.onspeechstart = function () { dbg.speech = true; updateDebug(); };
-    r.onspeechend   = function () { dbg.speech = false; updateDebug(); };
-    r.onnomatch     = function () { dbg.nomatch++; updateDebug(); };
+    r.lang = "ar-SA"; r.continuous = true; r.interimResults = true;
+    r.onstart = function () { qiraaRunning = true; qiraaStatusEl.textContent = "🟢 Écoute..."; qiraaPaintWords(); };
     r.onerror = function (e) {
-      if (e.error === "no-speech") { statusEl.textContent = "⏸️ En attente de la reprise…"; return; }
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") { restartWanted = false; statusEl.textContent = "🚫 Micro bloqué : autorisez-le (🔒 barre d'adresse) puis relancez."; }
-      else if (e.error === "audio-capture") { restartWanted = false; statusEl.textContent = "🎙️ Aucun micro détecté."; }
-      else if (e.error === "network") { restartWanted = false; listening = false; updateListenBtn(); statusEl.textContent = "🌐 Ouvrez l'app en https:// (le moteur ne marche pas en fichier local)."; }
-      else if (e.error !== "aborted") statusEl.textContent = "Micro : " + e.error;
-      dbg.lastError = e.error; updateDebug();
+      if (e.error === "no-speech") { qiraaStatusEl.textContent = "⏸️ En attente..."; return; }
+      qiraaStatusEl.textContent = "🎙️ " + e.error;
     };
     r.onend = function () {
-      srRunning = false;
-      if (restartWanted && !paused) {
-        setTimeout(function () { if (restartWanted && !paused && !srRunning) { try { r.start(); } catch (e) {} } }, 250);
-      } else { listening = false; updateListenBtn(); paintWords(); }
+      qiraaRunning = false;
+      if (qiraaRestartWanted && !qiraaPaused) {
+        setTimeout(function () { if (qiraaRestartWanted && !qiraaPaused && !qiraaRunning) { try { r.start(); } catch (e) {} } }, 250);
+      } else { qiraaListening = false; updateQiraaListenBtn(); qiraaPaintWords(); }
     };
     r.onresult = function (event) {
       var phrase = "";
       for (var i = event.resultIndex; i < event.results.length; i++) phrase += " " + event.results[i][0].transcript;
       phrase = phrase.trim();
-      heardEl.textContent = phrase ? "Entendu : " + phrase : "";
-      dbg.results++; dbg.lastPhrase = phrase; updateDebug();
+      qiraaHeardEl.textContent = phrase ? "Entendu : " + phrase : "";
 
       var heard = wordsOf(phrase);
-      var p = pages();
-      if (!curNorm.length || !heard.length) return;
+      var p = qiraaPages();
+      if (!qiraaCurNorm.length || !heard.length) return;
 
-      // --- Suivi STRICTEMENT DANS L'ORDRE (pilote la surbrillance ET le changement) ---
-      var recent = heard.slice(-40);
-      var ptr = matchPtr;
+      var recent = heard.slice(-40), ptr = qiraaMatchPtr;
       for (var h = 0; h < recent.length; h++) {
-        if (ptr >= curNorm.length) break;
-        if (wordEq(recent[h], curNorm[ptr])) { ptr++; continue; }
-        if (ptr + 1 < curNorm.length && wordEq(recent[h], curNorm[ptr + 1])) { ptr += 2; continue; } // tolère 1 mot mal transcrit
+        if (ptr >= qiraaCurNorm.length) break;
+        if (wordEq(recent[h], qiraaCurNorm[ptr])) { ptr++; continue; }
+        if (ptr + 1 < qiraaCurNorm.length && wordEq(recent[h], qiraaCurNorm[ptr + 1])) { ptr += 2; continue; }
       }
-      if (ptr > matchPtr) { matchPtr = ptr; paintWords(); }
+      if (ptr > qiraaMatchPtr) { qiraaMatchPtr = ptr; qiraaPaintWords(); }
 
-      // --- Changement de page : DÉTECTION DES 2 DERNIERS MOTS du bloc affiché ---
-      // On tourne dès que les 2 derniers mots du bloc sont reconnus (consécutivement).
-      // La Sensibilité ajuste la tolérance : bas = 1 mot final suffit, haut = les 2 exigés.
-      var tailN = curNorm.length >= 2 ? 2 : 1;
-      var lastWords = curNorm.slice(-tailN);          // 2 derniers mots du bloc
-      var scan = heard.slice(-6);                     // fenêtre récente d'écoute
-
-      // cherche les 2 derniers mots dans l'ordre, proches l'un de l'autre
+      var tailN = qiraaCurNorm.length >= 2 ? 2 : 1;
+      var lastWords = qiraaCurNorm.slice(-tailN);
+      var scan = heard.slice(-6);
       var hitLast = false, hitPrev = false;
       for (var s = 0; s < scan.length; s++) {
         if (wordEq(scan[s], lastWords[lastWords.length - 1])) hitLast = true;
         if (lastWords.length === 2 && wordEq(scan[s], lastWords[0])) hitPrev = true;
       }
-
-      // Sensibilité haute (≥0.7) : exige les 2 mots. Sensibilité basse : le dernier mot suffit.
-      var strict = threshold >= 0.7;
-      var trigger = (lastWords.length === 2)
-        ? (strict ? (hitPrev && hitLast) : hitLast)
-        : hitLast;
-
-      // Garde-fou : au moins la moitié du bloc doit avoir été parcourue.
-      // On combine 2 mesures pour survivre à un redémarrage du moteur vocal
-      // (qui vide event.results et remet matchPtr en retard) :
-      //  - progression séquentielle via matchPtr
-      //  - présence brute des mots du bloc dans la fenêtre d'écoute récente
-      var seqRatio = matchPtr / curNorm.length;
+      var strict = qiraaThreshold >= 0.7;
+      var trigger = (lastWords.length === 2) ? (strict ? (hitPrev && hitLast) : hitLast) : hitLast;
+      
+      var seqRatio = qiraaMatchPtr / qiraaCurNorm.length;
       var recentSet = {};
       for (var rs = 0; rs < recent.length; rs++) recentSet[recent[rs]] = 1;
       var seen = 0;
-      for (var cn = 0; cn < curNorm.length; cn++) if (recentSet[curNorm[cn]]) seen++;
-      var presRatio = seen / curNorm.length;
+      for (var cn = 0; cn < qiraaCurNorm.length; cn++) if (recentSet[qiraaCurNorm[cn]]) seen++;
+      var presRatio = seen / qiraaCurNorm.length;
       var enoughRead = seqRatio >= 0.5 || presRatio >= 0.5;
 
       if (trigger && enoughRead) {
-        console.log("MATCH DETECTE", { trigger: trigger, seqRatio: seqRatio, presRatio: presRatio, matchPtr: matchPtr, blocLen: curNorm.length });
-        console.log("PAGE AVANT", index);
-        statusEl.textContent = "✅ 2 derniers mots reconnus";
-        if (index < p.length - 1) { goto(index + 1); console.log("PAGE APRES", index); }
-        else { statusEl.textContent = "🏁 Dernier écran atteint"; console.log("PAGE APRES (dernier)", index); }
-      } else if (trigger && !enoughRead) {
-        console.log("TRIGGER IGNORE (enoughRead=false)", { seqRatio: seqRatio, presRatio: presRatio, matchPtr: matchPtr, blocLen: curNorm.length });
+        qiraaStatusEl.textContent = "✅ Mots reconnus";
+        if (qiraaIndex < p.length - 1) { qiraaGoto(qiraaIndex + 1); }
+        else { qiraaStatusEl.textContent = "🏁 Dernier écran"; }
       }
     };
-    recognizer = r;
+    qiraaRecognizer = r;
   }
 
-  function updateListenBtn() {
-    if (listening) { listenBtn.textContent = "🔇 Arrêter"; listenBtn.className = "big stop"; }
-    else { listenBtn.textContent = "🎙 Écouter"; listenBtn.className = "big listen"; }
-    listenBtn.disabled = !auto; pauseBtn.disabled = !auto;
+  function updateQiraaListenBtn() {
+    if (qiraaListening) { qiraaListenBtn.textContent = "🔇 Arrêter"; qiraaListenBtn.style.background = "#ef4444"; }
+    else { qiraaListenBtn.textContent = "🎙 Écouter"; qiraaListenBtn.style.background = "var(--secondary)"; }
   }
-  function reallyStart() {
-    if (srRunning) return;
-    try { recognizer.start(); }
-    catch (e) { if (e && e.name === "InvalidStateError") return; setTimeout(function () { try { recognizer.start(); } catch (_) {} }, 300); }
-  }
-  function startListen() {
-    if (!recognizer) { statusEl.textContent = "Reconnaissance vocale non disponible"; return; }
-    if (!auto) return;
-    if (location.protocol === "file:") statusEl.textContent = "⚠️ Fichier local : préférez https:// (GitHub Pages).";
-    restartWanted = true; paused = false; listening = true;
-    overlay.classList.add("hidden"); requestWakeLock(); updateListenBtn(); paintWords();
-    if (!micGranted && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      statusEl.textContent = "⏳ Autorisation du micro…";
+
+  function qiraaStartListen() {
+    if (!qiraaRecognizer) { qiraaStatusEl.textContent = "Reconnaissance vocale indisponible"; return; }
+    qiraaRestartWanted = true; qiraaPaused = false; qiraaListening = true;
+    updateQiraaListenBtn(); qiraaPaintWords();
+    if (!qiraaMicGranted && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      qiraaStatusEl.textContent = "⏳ Autorisation du micro…";
       navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(function (stream) { micGranted = true; stream.getTracks().forEach(function (t) { t.stop(); }); reallyStart(); })
-        .catch(function () { restartWanted = false; listening = false; updateListenBtn(); statusEl.textContent = "🚫 Micro refusé (🔒 barre d'adresse ▸ autoriser)."; });
-    } else { reallyStart(); }
+        .then(function (stream) { qiraaMicGranted = true; stream.getTracks().forEach(function (t) { t.stop(); }); try { qiraaRecognizer.start(); } catch (e) {} })
+        .catch(function () { qiraaRestartWanted = false; qiraaListening = false; updateQiraaListenBtn(); qiraaStatusEl.textContent = "🚫 Micro refusé"; });
+    } else { try { qiraaRecognizer.start(); } catch (e) {} }
   }
-  function stopListen() {
-    restartWanted = false; listening = false;
-    try { if (recognizer) recognizer.abort(); } catch (e) {}
-    srRunning = false; releaseWakeLock(); statusEl.textContent = "Arrêté"; updateListenBtn(); paintWords();
+
+  function qiraaStopListen() {
+    qiraaRestartWanted = false; qiraaListening = false;
+    try { if (qiraaRecognizer) qiraaRecognizer.abort(); } catch (e) {}
+    qiraaRunning = false; qiraaStatusEl.textContent = "Arrêté"; updateQiraaListenBtn(); qiraaPaintWords();
   }
-  function togglePause() {
-    if (!paused) {
-      paused = true; try { if (recognizer) recognizer.abort(); } catch (e) {} srRunning = false;
-      statusEl.textContent = "🧎 En pause — position conservée (écran " + (index + 1) + ")";
-      pauseBtn.textContent = "▶ Reprendre"; overlay.classList.remove("hidden");
-    } else {
-      paused = false; pauseBtn.textContent = "⏸ Pause prière"; overlay.classList.add("hidden");
-      restartWanted = true; listening = true; requestWakeLock(); updateListenBtn(); setTimeout(reallyStart, 200);
+
+  qiraaStartBtn.addEventListener("click", function () { qiraaEditorEl.style.display = "none"; qiraaPlayerEl.style.display = "block"; qiraaIndex = 0; renderQiraa(); qiraaStatusEl.textContent = "Prêt"; });
+  qiraaEditBtn.addEventListener("click", function () { qiraaStopListen(); qiraaPlayerEl.style.display = "none"; qiraaEditorEl.style.display = "block"; });
+  qiraaListenBtn.addEventListener("click", function () { qiraaListening ? qiraaStopListen() : qiraaStartListen(); });
+  qiraaPrevBtn.addEventListener("click", function () { qiraaGoto(qiraaIndex - 1); });
+  qiraaNextBtn.addEventListener("click", function () { qiraaGoto(qiraaIndex + 1); });
+  qiraaResetBtn.addEventListener("click", function () { qiraaGoto(0); });
+
+  window.addEventListener("resize", function () { if (qiraaPlayerEl.style.display !== "none") renderQiraa(); });
+
+  initQiraaRecognizer();
+  updateQiraaListenBtn();
+
+  // ---- CONJUGAISON ----
+  var verbs = {
+    "كتب": ["كتبتُ","كتبتُ","كتبتَ","كتبتِ","كتبَ","كتبَتْ","كتبنا","كتبتم","كتبتن","كتبوا","كتبن","أكتبُ","أكتبُ","تكتبُ","تكتبينَ","يكتبُ","تكتبُ","نكتبُ","تكتبون","تكتبن","يكتبون","يكتبن","سأكتبُ","سأكتبُ","ستكتبُ","ستكتبينَ","سيكتبُ","ستكتبُ","سنكتبُ","ستكتبون","ستكتبن","سيكتبون","سيكتبن"],
+    "قرأ": ["قرأتُ","قرأتُ","قرأتَ","قرأتِ","قرأَ","قرأَتْ","قرأنا","قرأتم","قرأتن","قرأوا","قرأن","أقرأُ","أقرأُ","تقرأُ","تقرئينَ","يقرأُ","تقرأُ","نقرأُ","تقرأون","تقرأن","يقرأون","يقرأن","سأقرأُ","سأقرأُ","ستقرأُ","ستقرئينَ","سيقرأُ","ستقرأُ","سنقرأُ","ستقرأون","ستقرأن","سيقرأون","سيقرأن"],
+    "ذهب": ["ذهبتُ","ذهبتُ","ذهبتَ","ذهبتِ","ذهبَ","ذهبَتْ","ذهبنا","ذهبتم","ذهبتن","ذهبوا","ذهبن","أذهبُ","أذهبُ","تذهبُ","تذهبينَ","يذهبُ","تذهبُ","نذهبُ","تذهبون","تذهبن","يذهبون","يذهبن","سأذهبُ","سأذهبُ","ستذهبُ","ستذهبينَ","سيذهبُ","ستذهبُ","سنذهبُ","ستذهبون","ستذهبن","سيذهبون","سيذهبن"],
+    "أكل": ["أكلتُ","أكلتُ","أكلتَ","أكلتِ","أكلَ","أكلَتْ","أكلنا","أكلتم","أكلتن","أكلوا","أكلن","آكلُ","آكلُ","تأكلُ","تأكلينَ","يأكلُ","تأكلُ","نأكلُ","تأكلون","تأكلن","يأكلون","يأكلن","سآكلُ","سآكلُ","ستأكلُ","ستأكلينَ","سيأكلُ","ستأكلُ","سنأكلُ","ستأكلون","ستأكلن","سيأكلون","سيأكلن"],
+    "شرب": ["شربتُ","شربتُ","شربتَ","شربتِ","شربَ","شربَتْ","شربنا","شربتم","شربتن","شربوا","شربن","أشربُ","أشربُ","تشربُ","تشربينَ","يشربُ","تشربُ","نشربُ","تشربون","تشربن","يشربون","يشربن","سأشربُ","سأشربُ","ستشربُ","ستشربينَ","سيشربُ","ستشربُ","سنشربُ","ستشربون","ستشربن","سيشربون","سيشربن"],
+    "لعب": ["لعبتُ","لعبتُ","لعبتَ","لعبتِ","لعبَ","لعبَتْ","لعبنا","لعبتم","لعبتن","لعبوا","لعبن","ألعبُ","ألعبُ","تلعبُ","تلعبينَ","يلعبُ","تلعبُ","نلعبُ","تلعبون","تلعبن","يلعبون","يلعبن","سألعبُ","سألعبُ","ستلعبُ","ستلعبينَ","سيلعبُ","ستلعبُ","سنلعبُ","ستلعبون","ستلعبن","سيلعبون","سيلعبن"],
+    "نام": ["نمتُ","نمتُ","نمتَ","نمتِ","نامَ","نامَتْ","نمنا","نمتم","نمتن","ناموا","نمنا","أنامُ","أنامُ","تنامُ","تنامينَ","ينامُ","تنامُ","ننامُ","تنامون","تنامن","ينامون","ينامن","سأنامُ","سأنامُ","ستنامُ","ستنامينَ","سينامُ","ستنامُ","سننامُ","ستنامون","ستنامن","سينامون","سينامن"],
+    "سافر": ["سافرتُ","سافرتُ","سافرتَ","سافرتِ","سافرَ","سافرَتْ","سافرنا","سافرتم","سافرتّن","سافروا","سافرنا","أسافرُ","أسافرُ","تسافرُ","تسافرينَ","يسافرُ","تسافرُ","نسافرُ","تسافرون","تسافرن","يسافرون","يسافرن","سأسافرُ","سأسافرُ","ستسافرُ","ستسافرينَ","سيسافرُ","ستسافرُ","سنسافرُ","ستسافرون","ستسافرن","سيسافرون","سيسافرن"],
+    "جلس": ["جلستُ","جلستُ","جلستَ","جلستِ","جلسَ","جلسَتْ","جلسنا","جلستم","جلستن","جلسوا","جلسنا","أجلسُ","أجلسُ","تجلسُ","تجلسينَ","يجلسُ","تجلسُ","نجلسُ","تجلسون","تجلسن","يجلسون","يجلسن","سأجلسُ","سأجلسُ","ستجلسُ","ستجلسينَ","سيجلسُ","ستجلسُ","سنجلسُ","ستجلسون","ستجلسن","سيجلسون","سيجلسن"],
+    "قام": ["قمتُ","قمتُ","قمتَ","قمتِ","قامَ","قامَتْ","قمنا","قمتم","قمتن","قاموا","قمنا","أقومُ","أقومُ","تقومُ","تقومينَ","يقومُ","تقومُ","نقومُ","تقومون","تقومن","يقومون","يقومن","سأقومُ","سأقومُ","ستقومُ","ستقومينَ","سيقومُ","ستقومُ","سنقومُ","ستقومون","ستقومن","سيقومون","سيقومن"],
+    "ركض": ["ركضتُ","ركضتُ","ركضتَ","ركضتِ","ركضَ","ركضَتْ","ركضنا","ركضتم","ركضتن","ركضوا","ركضنا","أركضُ","أركضُ","تركضُ","تركضينَ","يركضُ","تركضُ","نركضُ","تركضون","تركضن","يركضون","يركضن","سأركضُ","سأركضُ","ستركضُ","ستركضينَ","سيركضُ","ستركضُ","سنركضُ","ستركضون","ستركضن","سيركضون","سيركضن"],
+    "غنى": ["غنيتُ","غنيتُ","غنيتَ","غنيتِ","غنى","غنَتْ","غَنَينا","غنيتم","غنيتن","غنوا","غَنَينا","أغني","أغني","تغني","تغنينَ","يغني","تغني","نغني","تغنون","تغنين","يغنون","يغنين","سأغني","سأغني","ستغني","ستغنينَ","سيغني","ستغني","سنغني","ستغنون","ستغنين","سيغنون","سيغنين"],
+    "ضحك": ["ضحكتُ","ضحكتُ","ضحكتَ","ضحكتِ","ضحكَ","ضحكَتْ","ضحكنا","ضحكتم","ضحكتن","ضحكوا","ضحكنا","أضحكُ","أضحكُ","تضحكُ","تضحكينَ","يضحكُ","تضحكُ","نضحكُ","تضحكون","تضحكن","يضحكون","يضحكن","سأضحكُ","سأضحكُ","ستضحكُ","ستضحكينَ","سيضحكُ","ستضحكُ","سنضحكُ","ستضحكون","ستضحكن","سيضحكون","سيضحكن"],
+    "بكى": ["بكيتُ","بكيتُ","بكيتَ","بكيتِ","بكى","بكَتْ","بكينا","بكيتم","بكيتن","بكوا","بكينا","أبكي","أبكي","تبكي","تبكينَ","يبكي","تبكي","نبكي","تبكون","تبكين","يبكون","يبكين","سأبكي","سأبكي","ستبكي","ستبكينَ","سيبكي","ستبكي","سنبكي","ستبكون","ستبكين","سيبكون","سيبكين"],
+    "سبح": ["سبحتُ","سبحتُ","سبحتَ","سبحتِ","سبحَ","سبحَتْ","سبحنا","سبحتم","سبحتن","سبحوا","سبحنا","أسبحُ","أسبحُ","تسبحُ","تسبحينَ","يسبحُ","تسبحُ","نسبحُ","تسبحون","تسبحن","يسبحون","يسبحن","سأسبحُ","سأسبحُ","ستسبحُ","ستسبحينَ","سيسبحُ","ستسبحُ","سنسبحُ","ستسبحون","ستسبحن","سيسبحون","سيسبحن"],
+    "رسم": ["رسمتُ","رسمتُ","رسمتَ","رسمتِ","رسمَ","رسمَتْ","رسمنا","رسمتم","رسمتن","رسموا","رسمنا","أرسمُ","أرسمُ","ترسمُ","ترسمينَ","يرسمُ","ترسمُ","نرسمُ","ترسمون","ترسمن","يرسمون","يرسمن","سأرسمُ","سأرسمُ","سترسمُ","سترسمينَ","سيرسمُ","سترسمُ","سنرسمُ","سترسمون","سترسمن","سيرسمون","سيرسمن"],
+    "قرر": ["قررتُ","قررتُ","قررتَ","قررتِ","قررَ","قررَتْ","قررنا","قررتم","قررتن","قرروا","قررنا","أقررُ","أقررُ","تقررُ","تقررينَ","يقررُ","تقررُ","نقررُ","تقررون","تقررن","يقررون","يقررن","سأقررُ","سأقررُ","ستقررُ","ستقررينَ","سيقررُ","ستقررُ","سنقررُ","ستقررون","ستقررن","سيقررون","سيقررن"],
+    "زرع": ["زرعتُ","زرعتُ","زرعتَ","زرعتِ","زرعَ","زرعَتْ","زرعنا","زرعتم","زرعتن","زرعوا","زرعنا","أزرعُ","أزرعُ","تزرعُ","تزرعينَ","يزرعُ","تزرعُ","نزرعُ","تزرعون","تزرعن","يزرعون","يزرعن","سأزرعُ","سأزرعُ","ستزرعُ","ستزرعينَ","سيزرعُ","ستزرعُ","سنزرعُ","ستزرعون","ستزرعن","سيزرعون","سيزرعن"],
+    "بنى": ["بنيتُ","بنيتُ","بنيتَ","بنيتِ","بنى","بنَتْ","بَنَينا","بنيتم","بنيتن","بنوا","بَنَينا","أبني","أبني","تبني","تبنينَ","يبني","تبني","نبني","تبنون","تبنون","يبنون","يبنون","سأبني","سأبني","ستبني","ستبنينَ","سيبني","ستبني","سنبني","ستبنون","ستبنون","سيبنون","سيبنون"],
+    "فتح": ["فتحتُ","فتحتُ","فتحتَ","فتحتِ","فتحَ","فتحَتْ","فتحنا","فتحتم","فتحتن","فتحوا","فتحنا","أفتحُ","أفتحُ","تفتحُ","تفتحينَ","يفتحُ","تفتحُ","نفتحُ","تفتحون","تفتحن","يفتحون","يفتحن","سأفتحُ","سأفتحُ","ستفتحُ","ستفتحينَ","سيفتحُ","ستفتحُ","سنفتحُ","ستفتحون","ستفتحن","سيفتحون","سيفتحن"],
+    "غلق": ["غلقتُ","غلقتُ","غلقتَ","غلقتِ","غلقَ","غلقَتْ","غلقنا","غلقتم","غلقتن","غلقوا","غلقنا","أغلقُ","أغلقُ","تغلقُ","تغلقينَ","يغلقُ","تغلقُ","نغلقُ","تغلقون","تغلقن","يغلقون","يغلقن","سأغلقُ","سأغلقُ","ستغلقُ","ستغلقينَ","سيغلقُ","ستغلقُ","سنغلقُ","ستغلقون","ستغلقن","سيغلقون","سيغلقن"],
+    "دخل": ["دخلتُ","دخلتُ","دخلتَ","دخلتِ","دخلَ","دخلَتْ","دخلنا","دخلتم","دخلتن","دخلوا","دخلنا","أدخلُ","أدخلُ","تدخلُ","تدخلينَ","يدخلُ","تدخلُ","ندخلُ","تدخلون","تدخلن","يدخلون","يدخلن","سأدخلُ","سأدخلُ","ستدخلُ","ستدخلينَ","سيدخلُ","ستدخلُ","سندخلُ","ستدخلون","ستدخلن","سيدخلون","سيدخلن"],
+    "خرج": ["خرجتُ","خرجتُ","خرجتَ","خرجتِ","خرجَ","خرجَتْ","خرجنا","خرجتم","خرجتن","خرجوا","خرجن","أخرجُ","أخرجُ","تخرجُ","تخرجينَ","يخرجُ","تخرجُ","نخرجُ","تخرجون","تخرجن","يخرجون","يخرجن","سأخرجُ","سأخرجُ","ستخرجُ","ستخرجينَ","سيخرجُ","ستخرجُ","سنخرجُ","ستخرجون","ستخرجن","سيخرجون","سيخرجن"],
+    "حفظ": ["حفظتُ","حفظتُ","حفظتَ","حفظتِ","حفظَ","حفظَتْ","حفظنا","حفظتم","حفظتن","حفظوا","حفظن","أحفظُ","أحفظُ","تحفظُ","تحفظينَ","يحفظُ","تحفظُ","نحفظُ","تحفظون","تحفظن","يحفظون","يحفظن","سأحفظُ","سأحفظُ","ستحفظُ","ستحفظينَ","سيحفظُ","ستحفظُ","سنحفظُ","ستحفظون","ستحفظن","سيحفظون","سيحفظن"],
+    "بحث": ["بحثتُ","بحثتُ","بحثتَ","بحثتِ","بحثَ","بحثَتْ","بحثنا","بحثتم","بحثتن","بحثوا","بحثن","أبحثُ","أبحثُ","تبحثُ","تبحثينَ","يبحثُ","تبحثُ","نبحثُ","تبحثون","تبحثن","يبحثون","يبحثن","سأبحثُ","سأبحثُ","ستبحثُ","ستبحثينَ","سيبحثُ","ستبحثُ","سنبحثُ","ستبحثون","ستبحثن","سيبحثون","سيبحثن"]
+  };
+
+  var translations = {
+    "كتب": { fr: "écrire", en: "write" }, "قرأ": { fr: "lire", en: "read" },
+    "ذهب": { fr: "aller", en: "go" }, "أكل": { fr: "manger", en: "eat" },
+    "شرب": { fr: "boire", en: "drink" }, "لعب": { fr: "jouer", en: "play" },
+    "نام": { fr: "dormir", en: "sleep" }, "سافر": { fr: "voyager", en: "travel" },
+    "جلس": { fr: "s'asseoir", en: "sit" }, "قام": { fr: "se lever", en: "stand up" },
+    "ركض": { fr: "courir", en: "run" }, "غنى": { fr: "chanter", en: "sing" },
+    "ضحك": { fr: "rire", en: "laugh" }, "بكى": { fr: "pleurer", en: "cry" },
+    "سبح": { fr: "nager", en: "swim" }, "رسم": { fr: "dessiner", en: "draw" },
+    "قرر": { fr: "décider", en: "decide" }, "زرع": { fr: "planter", en: "plant" },
+    "بنى": { fr: "construire", en: "build" }, "فتح": { fr: "ouvrir", en: "open" },
+    "غلق": { fr: "fermer", en: "close" }, "دخل": { fr: "entrer", en: "enter" },
+    "خرج": { fr: "sortir", en: "exit" }, "حفظ": { fr: "mémoriser", en: "memorize" },
+    "بحث": { fr: "chercher", en: "search" }
+  };
+
+  var tenseLabels = ["الماضي", "المضارع", "المستقبل"];
+  var tenseClasses = ["past", "present", "future"];
+  var pronouns = ["أنا (m)", "أنا (f)", "أنتَ", "أنتِ", "هو", "هي", "نحن", "أنتم", "أنتن", "هم", "هن"];
+
+  function updateConjugation() {
+    var verb = document.getElementById("verbSelect").value;
+    var tableBody = document.querySelector("#conjugationTable tbody");
+    var translationEl = document.getElementById("translation");
+    tableBody.innerHTML = "";
+    translationEl.textContent = "الترجمة : " + translations[verb].fr + " / " + translations[verb].en;
+
+    for (var t = 0; t < tenseLabels.length; t++) {
+      var startIndex = t * pronouns.length;
+      for (var p = 0; p < pronouns.length; p++) {
+        var row = document.createElement("tr");
+        if (p === 0) {
+          var tenseCell = document.createElement("td");
+          tenseCell.rowSpan = pronouns.length;
+          tenseCell.textContent = tenseLabels[t];
+          tenseCell.className = "tense-cell " + tenseClasses[t];
+          row.appendChild(tenseCell);
+        }
+        var form = verbs[verb][startIndex + p];
+        var highlighted = form.replace(new RegExp(verb, "g"), '<span class="unchanged">' + verb + '</span>');
+        row.innerHTML += '<td>' + pronouns[p] + '</td><td>' + highlighted + '</td>';
+        tableBody.appendChild(row);
+      }
     }
   }
-  function toggleFullscreen() { try { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); } catch (e) {} }
 
-  function showPlayer() { editor.style.display = "none"; player.style.display = "flex"; index = 0; render(); setProgress(0); statusEl.textContent = "Prêt à écouter"; }
-  function showEditor() { stopListen(); player.style.display = "none"; editor.style.display = "block"; refreshCount(); }
+  document.getElementById("verbSelect").addEventListener("change", updateConjugation);
+  updateConjugation();
 
-  lpsInput.value = LINES_PER_SCREEN;
-  lpsInput.addEventListener("change", function () {
-    var v = parseInt(lpsInput.value, 10);
-    if (v >= 1 && v <= 8) { LINES_PER_SCREEN = v; try { localStorage.setItem("vp_lps", String(v)); } catch (e) {} refreshCount(); }
-    else { lpsInput.value = LINES_PER_SCREEN; }
+  // ---- JEU DU PENDU ----
+  var hangmanWords = ["تفاحة", "برتقال", "موز", "فراولة", "عنب", "ليمون", "مانجو"];
+  var hangmanDrawings = [
+    "  -----\n  |   |\n  |    \n  |\n  |\n  |\n  |",
+    "  -----\n  |   |\n  |   O\n  |\n  |\n  |\n  |",
+    "  -----\n  |   |\n  |   O\n  |   |\n  |\n  |\n  |",
+    "  -----\n  |   |\n  |   O\n  |  /|\n  |\n  |\n  |",
+    "  -----\n  |   |\n  |   O\n  |  /|\\\n  |\n  |\n  |",
+    "  -----\n  |   |\n  |   O\n  |  /|\\\n  |  /\n  |\n  |",
+    "  -----\n  |   |\n  |   O\n  |  /|\\\n  |  / \\\n  |\n  |"
+  ];
+  var selectedWord = "", guessedLetters = [], mistakes = 0;
+  var maxMistakes = 6;
+  var hangmanEl = document.getElementById("hangman");
+  var wordDisplayEl = document.getElementById("word-display");
+  var hangmanMsgEl = document.getElementById("hangman-message");
+  var keyboardEl = document.getElementById("keyboard");
+  var resetBtn = document.getElementById("reset-button");
+
+  function initHangman() {
+    selectedWord = hangmanWords[Math.floor(Math.random() * hangmanWords.length)];
+    guessedLetters = [];
+    mistakes = 0;
+    hangmanEl.textContent = hangmanDrawings[0];
+    wordDisplayEl.textContent = "_ ".repeat(selectedWord.length).trim();
+    hangmanMsgEl.textContent = "";
+    hangmanMsgEl.className = "";
+    var keys = document.querySelectorAll(".keyboard-key");
+    for (var i = 0; i < keys.length; i++) { keys[i].disabled = false; keys[i].classList.remove("disabled"); }
+  }
+
+  function displayWord() {
+    var display = "";
+    for (var i = 0; i < selectedWord.length; i++) {
+      display += (guessedLetters.indexOf(selectedWord[i]) !== -1 ? selectedWord[i] : "_") + " ";
+    }
+    wordDisplayEl.textContent = display.trim();
+  }
+
+  function checkLetter(letter) {
+    if (guessedLetters.indexOf(letter) !== -1) return;
+    guessedLetters.push(letter);
+    if (selectedWord.indexOf(letter) === -1) {
+      mistakes++;
+      hangmanEl.textContent = hangmanDrawings[Math.min(mistakes, hangmanDrawings.length - 1)];
+    }
+    displayWord();
+    checkHangmanStatus();
+  }
+
+  function checkHangmanStatus() {
+    if (mistakes >= maxMistakes) {
+      hangmanMsgEl.textContent = "😔 Perdu ! Le mot était : " + selectedWord;
+      hangmanMsgEl.className = "lose";
+      disableHangmanKeyboard();
+    } else if (wordDisplayEl.textContent.indexOf("_") === -1) {
+      hangmanMsgEl.textContent = "🎉 Félicitations, vous avez gagné !";
+      hangmanMsgEl.className = "win";
+      disableHangmanKeyboard();
+    }
+  }
+
+  function disableHangmanKeyboard() {
+    var keys = document.querySelectorAll(".keyboard-key");
+    for (var i = 0; i < keys.length; i++) { keys[i].disabled = true; keys[i].classList.add("disabled"); }
+  }
+
+  keyboardEl.addEventListener("click", function (event) {
+    if (event.target.classList.contains("keyboard-key")) {
+      var letter = event.target.getAttribute("data-key");
+      event.target.disabled = true;
+      event.target.classList.add("disabled");
+      checkLetter(letter);
+    }
   });
-  $("start").addEventListener("click", function () { auto = autoEdit.checked; autoPlay.checked = auto; updateListenBtn(); showPlayer(); });
-  $("edit").addEventListener("click", showEditor);
-  $("fs").addEventListener("click", toggleFullscreen);
-  $("diagBtn").addEventListener("click", toggleDebug);
-  $("fdown").addEventListener("click", function () { fontSize = Math.max(28, fontSize - 4); render(); });
-  $("fup").addEventListener("click", function () { fontSize = Math.min(110, fontSize + 4); render(); });
-  $("prev").addEventListener("click", function () { goto(index - 1); });
-  $("next").addEventListener("click", function () { goto(index + 1); });
-  $("reset").addEventListener("click", function () { goto(0); });
-  $("resume").addEventListener("click", togglePause);
-  listenBtn.addEventListener("click", function () { listening ? stopListen() : startListen(); });
-  pauseBtn.addEventListener("click", togglePause);
-  thr.addEventListener("input", function () { threshold = Number(thr.value); thrVal.textContent = Math.round(threshold * 100) + " %"; });
-  autoPlay.addEventListener("change", function () { auto = autoPlay.checked; if (!auto) stopListen(); updateListenBtn(); });
-
-  document.addEventListener("keydown", function (e) {
-    if (player.style.display === "none") return;
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") { goto(index + 1); e.preventDefault(); }
-    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { goto(index - 1); e.preventDefault(); }
-    else if (e.key === " ") { togglePause(); e.preventDefault(); }
-  });
-
-  initRecognizer();
-  updateListenBtn();
+  resetBtn.addEventListener("click", initHangman);
+  initHangman();
 })();
 </script>
+
 </body>
 </html>
